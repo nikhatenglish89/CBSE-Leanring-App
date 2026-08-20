@@ -1,0 +1,56 @@
+# --- Environment / secrets ---
+.env
+.env.*
+!.env.example
+
+# --- Python / backend ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.log
+instance/
+.cache/
+
+# --- Alembic ---
+backend/alembic/versions/__pycache__/
+
+# --- Node / frontend ---
+node_modules/
+dist/
+dist-ssr/
+build/
+.vite/
+.turbo/
+*.local
+.eslintcache
+
+# --- Testing ---
+coverage/
+playwright-report/
+test-results/
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# --- Docker ---
+*.pid
+
+# --- Misc ---
+*.tmp
+*.bak
