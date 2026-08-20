@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: edusphere-cbse-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    preDeployCommand: alembic upgrade head
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      # Neon connection string (Postgres) — set manually in the Render dashboard,
+      # not stored in the repo. Render's own free Postgres expires after 30 days;
+      # Neon's free tier does not, so the database lives outside Render.
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "30"
+      - key: REFRESH_TOKEN_EXPIRE_DAYS
+        value: "7"
+      # GitHub Pages origin — the deployed frontend that's allowed to call this API.
+      - key: CORS_ORIGINS
+        value: https://nikhatenglish89.github.io
+      - key: FRONTEND_URL
+        value: https://nikhatenglish89.github.io/CBSE-Leanring-App/
