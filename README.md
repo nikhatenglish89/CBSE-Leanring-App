@@ -10,11 +10,13 @@ users toward millions over time.
 
 ## Status
 
-**Architecture phase — implementation not yet started.**
+**Phase 2 complete: Authentication, Users, Roles & Permissions.**
 
-This repository currently contains the proposed system architecture, database design, API
-conventions, and project folder skeleton. Per the project's own development methodology,
-implementation begins only after this architecture is explicitly reviewed and approved.
+Register/login/refresh/logout work end-to-end against a real FastAPI backend with RBAC
+enforced server-side (`require_permission(...)`), backed by a SQLAlchemy schema and Alembic
+migration. The React frontend has a working login/register flow, a protected route example,
+and the shared design-system primitives. See `docs/ARCHITECTURE.md` §12 for the full 12-phase
+roadmap — Phase 3 (Classes/Subjects/Courses/Chapters/Lessons) is next.
 
 ## Documentation
 
@@ -43,7 +45,45 @@ See `docs/ARCHITECTURE.md` §5 for the fully expanded folder structure.
 
 ## Getting Started
 
-_TODO — pending Phase 1 implementation (auth, users, roles, permissions foundation)._
+### Backend
+
+Local dev runs against SQLite with zero external services (no Docker/Postgres required); set
+`DATABASE_URL` to a Postgres URL to run against Postgres instead — the schema is
+Postgres-compatible.
+
+```bash
+cd backend
+python -m venv .venv
+.venv/Scripts/activate        # Windows; use `source .venv/bin/activate` on macOS/Linux
+pip install -r requirements.txt
+alembic upgrade head
+python ../scripts/seed_dev_data.py   # creates roles/permissions + 5 demo accounts
+uvicorn app.main:app --reload
+```
+
+API docs: `http://localhost:8000/docs`. Demo accounts (dev only — see `scripts/seed_dev_data.py`):
+`admin@edusphere.dev` / `teacher@edusphere.dev` / `student@edusphere.dev` /
+`parent@edusphere.dev` / `support@edusphere.dev`, all with password `DevPass123!`.
+
+Run tests: `pytest` (from `backend/`, venv active).
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Set `VITE_API_BASE_URL` (defaults to `http://localhost:8000/api/v1`) if the backend runs
+elsewhere.
+
+### Docker (full stack, requires Docker)
+
+```bash
+cp .env.example .env   # fill in real values
+docker compose -f deployment/docker-compose.yml up --build
+```
 
 ## License / Content Notice
 

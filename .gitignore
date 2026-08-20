@@ -23,8 +23,13 @@ coverage.xml
 instance/
 .cache/
 
+# --- Local SQLite (dev/test DB — production uses Postgres) ---
+*.db
+*.sqlite
+*.sqlite3
+
 # --- Alembic ---
-backend/alembic/versions/__pycache__/
+database/migrations/versions/__pycache__/
 
 # --- Node / frontend ---
 node_modules/
@@ -35,6 +40,7 @@ build/
 .turbo/
 *.local
 .eslintcache
+*.tsbuildinfo
 
 # --- Testing ---
 coverage/
