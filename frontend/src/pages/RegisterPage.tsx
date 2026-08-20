@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { Button, Card, Input, useToast } from "../components/ui";
 import { useAuth } from "../hooks/useAuth";
+import { roleHomePath } from "../lib/roleRoutes";
 
 const schema = z.object({
   full_name: z.string().min(1, "Full name is required"),
@@ -27,8 +28,8 @@ export function RegisterPage() {
 
   const onSubmit = async (values: FormValues) => {
     try {
-      await registerUser(values);
-      navigate("/student");
+      const user = await registerUser(values);
+      navigate(roleHomePath(user.role));
     } catch {
       showToast("Could not create your account. The email may already be registered.", "error");
     }

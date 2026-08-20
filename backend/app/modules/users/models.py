@@ -2,9 +2,10 @@ import uuid
 from datetime import date
 
 from sqlalchemy import Boolean, Date, ForeignKey, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDPKMixin
+from app.modules.auth.models import Role
 
 
 class User(UUIDPKMixin, TimestampMixin, Base):
@@ -27,6 +28,8 @@ class User(UUIDPKMixin, TimestampMixin, Base):
     # breaking the require_permission() contract.
     role_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("roles.id"))
     status: Mapped[str] = mapped_column(String(20), default="ACTIVE")
+
+    role: Mapped["Role"] = relationship(lazy="joined")
 
 
 class StudentProfile(UUIDPKMixin, TimestampMixin, Base):

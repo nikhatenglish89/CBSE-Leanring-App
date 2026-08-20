@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { Button, Card, Input, useToast } from "../components/ui";
 import { useAuth } from "../hooks/useAuth";
+import { roleHomePath } from "../lib/roleRoutes";
 
 const schema = z.object({
   email: z.string().email("Enter a valid email address"),
@@ -25,8 +26,8 @@ export function LoginPage() {
 
   const onSubmit = async (values: FormValues) => {
     try {
-      await login(values);
-      navigate("/student");
+      const user = await login(values);
+      navigate(roleHomePath(user.role));
     } catch {
       showToast("Incorrect email or password.", "error");
     }

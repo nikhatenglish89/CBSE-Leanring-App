@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
+import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 
 import { ToastProvider } from "./components/ui";
 import { queryClient } from "./lib/queryClient";
@@ -7,6 +7,7 @@ import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { RoleDashboardPlaceholder } from "./pages/RoleDashboardPlaceholder";
 import { StudentDashboardPage } from "./pages/student/StudentDashboardPage";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 
@@ -22,15 +23,37 @@ export function App() {
             <Route
               path="/student"
               element={
-                <ProtectedRoute>
+                <ProtectedRoute allow={["STUDENT"]}>
                   <StudentDashboardPage />
                 </ProtectedRoute>
               }
             />
-            {/* /teacher/*, /parent/*, /admin/* route groups land in later phases */}
-            <Route path="/teacher" element={<Navigate to="/" replace />} />
-            <Route path="/parent" element={<Navigate to="/" replace />} />
-            <Route path="/admin" element={<Navigate to="/" replace />} />
+            {/* Full teacher/parent/admin dashboards land in later phases;
+                these placeholders prove role-aware routing works end-to-end. */}
+            <Route
+              path="/teacher"
+              element={
+                <ProtectedRoute allow={["TEACHER"]}>
+                  <RoleDashboardPlaceholder roleLabel="Teacher" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/parent"
+              element={
+                <ProtectedRoute allow={["PARENT"]}>
+                  <RoleDashboardPlaceholder roleLabel="Parent" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute allow={["ADMIN", "SUPER_ADMIN", "CONTENT_MANAGER", "SUPPORT_AGENT"]}>
+                  <RoleDashboardPlaceholder roleLabel="Admin" />
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Router>

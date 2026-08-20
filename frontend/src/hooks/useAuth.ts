@@ -23,14 +23,15 @@ export function useAuth() {
   const { user, accessToken, setSession, clearSession } = useAuthStore();
 
   const loginMutation = useMutation({
-    mutationFn: async (payload: LoginPayload) => {
+    mutationFn: async (payload: LoginPayload): Promise<User> => {
       const { data } = await api.post<ApiSuccess<AuthTokens>>("/auth/login", payload);
-      return data.data;
-    },
-    onSuccess: async (tokens) => {
+      const tokens = data.data;
+      // Needed before fetchMe(): the API client's auth header reads the
+      // access token from the store.
       useAuthStore.getState().setAccessToken(tokens.access_token);
       const me = await fetchMe();
       setSession(me, tokens);
+      return me;
     },
   });
 

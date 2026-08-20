@@ -20,7 +20,7 @@ router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 def register(payload: RegisterRequest, db: Annotated[Session, Depends(get_db)]) -> dict:
     user = auth_service.register(db, payload)
-    return success(UserOut.model_validate(user).model_dump(mode="json"))
+    return success(UserOut.from_user(user).model_dump(mode="json"))
 
 
 @router.post("/login")

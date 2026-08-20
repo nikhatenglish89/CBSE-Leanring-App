@@ -6,6 +6,7 @@ export interface User {
   full_name: string;
   phone: string | null;
   status: string;
+  role: UserRole;
   created_at: string;
 }
 
