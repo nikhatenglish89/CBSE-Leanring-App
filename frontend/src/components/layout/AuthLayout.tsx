@@ -21,9 +21,13 @@ export function AuthLayout({
 }) {
   return (
     <div className="flex min-h-[calc(100vh-4rem)] items-stretch">
-      <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-brand-700 via-brand-600 to-brand-800 p-12 text-white lg:flex">
+      <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-brand-700 via-brand-600 to-violet-700 p-12 text-white lg:flex">
         <div
           className="bg-hero-grid absolute inset-0 opacity-30 [background-size:22px_22px]"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute -right-16 -top-16 h-72 w-72 rounded-full bg-accent-400/25 blur-3xl"
           aria-hidden="true"
         />
         <div className="relative">

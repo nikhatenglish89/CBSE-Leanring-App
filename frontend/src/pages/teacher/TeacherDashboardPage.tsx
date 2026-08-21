@@ -46,16 +46,37 @@ export function TeacherDashboardPage() {
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="!p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Total courses</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900">{courses?.length ?? "–"}</p>
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-lg text-brand-600">
+              📚
+            </span>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Total courses</p>
+              <p className="font-display text-2xl font-bold text-slate-900">{courses?.length ?? "–"}</p>
+            </div>
+          </div>
         </Card>
         <Card className="!p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Published</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-600">{publishedCount}</p>
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-lg text-emerald-600">
+              ✅
+            </span>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Published</p>
+              <p className="font-display text-2xl font-bold text-emerald-600">{publishedCount}</p>
+            </div>
+          </div>
         </Card>
         <Card className="!p-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Drafts</p>
-          <p className="mt-1 text-2xl font-bold text-amber-600">{draftCount}</p>
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-lg text-amber-600">
+              ✏️
+            </span>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Drafts</p>
+              <p className="font-display text-2xl font-bold text-amber-600">{draftCount}</p>
+            </div>
+          </div>
         </Card>
       </div>
 

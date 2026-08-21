@@ -7,8 +7,14 @@ export function CourseCard({ course, to }: { course: CourseOut; to: string }) {
   return (
     <Link
       to={to}
-      className="group flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-5 shadow-card transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-soft"
+      className="group relative flex flex-col gap-3 overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-card transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lift"
     >
+      <span
+        className={`absolute inset-x-0 top-0 h-1 ${
+          course.status === "PUBLISHED" ? "bg-emerald-500" : "bg-amber-400"
+        }`}
+        aria-hidden="true"
+      />
       <div className="flex items-start justify-between gap-3">
         <h3 className="font-semibold text-slate-900 group-hover:text-brand-700">{course.title}</h3>
         <Badge tone={course.access_type === "FREE" ? "success" : "brand"}>{course.access_type}</Badge>

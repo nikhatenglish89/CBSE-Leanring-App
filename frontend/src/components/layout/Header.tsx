@@ -33,7 +33,7 @@ function initials(name: string): string {
 
 function Logo() {
   return (
-    <span className="flex items-center gap-2 text-lg font-bold tracking-tight text-slate-900">
+    <span className="flex items-center gap-2 font-display text-lg font-bold tracking-tight text-slate-900">
       <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-extrabold text-white shadow-soft">
         E
       </span>
