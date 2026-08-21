@@ -8,6 +8,7 @@ import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { ProfilePage } from "./pages/ProfilePage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { RoleDashboardPlaceholder } from "./pages/RoleDashboardPlaceholder";
 import { StudentCourseDetailPage } from "./pages/student/StudentCourseDetailPage";
@@ -26,6 +27,14 @@ export function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/student"
               element={

@@ -14,13 +14,18 @@ interface RegisterPayload extends LoginPayload {
   role: "STUDENT" | "PARENT" | "TEACHER";
 }
 
+interface UpdateProfilePayload {
+  full_name?: string;
+  phone?: string | null;
+}
+
 async function fetchMe(): Promise<User> {
   const { data } = await api.get<ApiSuccess<User>>("/users/me");
   return data.data;
 }
 
 export function useAuth() {
-  const { user, accessToken, setSession, clearSession } = useAuthStore();
+  const { user, accessToken, setSession, clearSession, updateUser } = useAuthStore();
 
   const loginMutation = useMutation({
     mutationFn: async (payload: LoginPayload): Promise<User> => {
@@ -44,6 +49,14 @@ export function useAuth() {
     },
   });
 
+  const updateProfileMutation = useMutation({
+    mutationFn: async (payload: UpdateProfilePayload): Promise<User> => {
+      const { data } = await api.patch<ApiSuccess<User>>("/users/me", payload);
+      updateUser(data.data);
+      return data.data;
+    },
+  });
+
   const logout = () => {
     const refreshToken = useAuthStore.getState().refreshToken;
     if (refreshToken) {
@@ -64,6 +77,9 @@ export function useAuth() {
     register: registerMutation.mutateAsync,
     isRegistering: registerMutation.isPending,
     registerError: registerMutation.error,
+    updateProfile: updateProfileMutation.mutateAsync,
+    isUpdatingProfile: updateProfileMutation.isPending,
+    updateProfileError: updateProfileMutation.error,
     logout,
   };
 }

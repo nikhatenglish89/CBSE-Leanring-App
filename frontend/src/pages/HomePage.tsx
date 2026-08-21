@@ -1,29 +1,51 @@
-import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 
-import { Button } from "../components/ui";
+import { Badge, Button } from "../components/ui";
 import { BRAND } from "../config/brand";
 
-const FEATURES = [
+export const HOME_FEATURES = [
   {
+    id: "study-materials",
+    icon: "📚",
+    title: "Study Materials",
+    description: "Chapter-wise notes, NCERT solutions, and revision material for every CBSE subject.",
+    comingSoon: true,
+  },
+  {
+    id: "study-videos",
     icon: "🎥",
-    title: "Video Lessons",
+    title: "Study Videos",
     description: "Structured, chapter-wise video lessons mapped to the CBSE syllabus for classes VI–XII.",
+    comingSoon: true,
   },
   {
+    id: "teacher-interaction",
     icon: "🧑‍🏫",
-    title: "Live Classes",
-    description: "Join real-time classes with teachers, ask questions, and never fall behind.",
+    title: "Teacher Interaction",
+    description: "Ask questions, join live classes, and get doubts cleared directly by real teachers.",
+    comingSoon: true,
   },
   {
+    id: "practice-tests",
     icon: "📝",
     title: "Practice Tests",
     description: "Chapter and full-syllabus tests with instant scoring to track real progress.",
+    comingSoon: true,
   },
 ];
 
 const CLASS_RANGE = ["VI", "VII", "VIII", "IX", "X", "XI", "XII"];
 
 export function HomePage() {
+  const { hash } = useLocation();
+
+  useEffect(() => {
+    if (!hash) return;
+    const target = document.querySelector(hash);
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [hash]);
+
   return (
     <div>
       <section className="relative overflow-hidden bg-gradient-to-br from-brand-700 via-brand-600 to-brand-800">
@@ -80,17 +102,23 @@ export function HomePage() {
             curriculum.
           </p>
         </div>
-        <div className="mt-12 grid gap-6 sm:grid-cols-3">
-          {FEATURES.map((feature) => (
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {HOME_FEATURES.map((feature) => (
             <div
-              key={feature.title}
-              className="rounded-xl border border-slate-200 bg-white p-6 text-center shadow-card"
+              key={feature.id}
+              id={feature.id}
+              className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6 text-center shadow-card"
             >
               <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-2xl">
                 {feature.icon}
               </span>
               <h3 className="mt-4 font-semibold text-slate-900">{feature.title}</h3>
               <p className="mt-2 text-sm text-slate-600">{feature.description}</p>
+              {feature.comingSoon && (
+                <Badge tone="warning" className="mt-4">
+                  Coming soon
+                </Badge>
+              )}
             </div>
           ))}
         </div>

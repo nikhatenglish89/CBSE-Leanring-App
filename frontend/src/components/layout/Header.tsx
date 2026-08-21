@@ -17,6 +17,13 @@ const ROLE_LABEL: Record<UserRole, string> = {
   SUPPORT_AGENT: "Support Agent",
 };
 
+const PUBLIC_NAV_LINKS = [
+  { label: "Study Materials", to: "/#study-materials" },
+  { label: "Study Videos", to: "/#study-videos" },
+  { label: "Teacher Interaction", to: "/#teacher-interaction" },
+  { label: "Practice Tests", to: "/#practice-tests" },
+];
+
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
   const first = parts[0]?.[0] ?? "";
@@ -64,7 +71,11 @@ export function Header() {
             </nav>
 
             <div className="hidden items-center gap-3 md:flex">
-              <div className="flex items-center gap-2 rounded-full border border-slate-200 py-1 pl-1 pr-3">
+              <Link
+                to="/profile"
+                title="Edit profile"
+                className="flex items-center gap-2 rounded-full border border-slate-200 py-1 pl-1 pr-3 transition-colors hover:bg-slate-50"
+              >
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700">
                   {initials(user.full_name)}
                 </span>
@@ -73,7 +84,7 @@ export function Header() {
                   <span className="text-slate-400">&middot;</span>{" "}
                   <span className="text-slate-500">{ROLE_LABEL[user.role]}</span>
                 </span>
-              </div>
+              </Link>
               <Button variant="ghost" onClick={logout}>
                 Log out
               </Button>
@@ -95,14 +106,27 @@ export function Header() {
             </button>
           </>
         ) : (
-          <div className="flex items-center gap-2">
-            <Link to="/login">
-              <Button variant="ghost">Log in</Button>
-            </Link>
-            <Link to="/register">
-              <Button>Sign up free</Button>
-            </Link>
-          </div>
+          <>
+            <nav className="hidden items-center gap-1 lg:flex">
+              {PUBLIC_NAV_LINKS.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+            <div className="flex items-center gap-2">
+              <Link to="/login">
+                <Button variant="ghost">Log in</Button>
+              </Link>
+              <Link to="/register">
+                <Button>Sign up free</Button>
+              </Link>
+            </div>
+          </>
         )}
       </div>
 
@@ -123,6 +147,13 @@ export function Header() {
             onClick={() => setMenuOpen(false)}
           >
             Dashboard
+          </Link>
+          <Link
+            to="/profile"
+            className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+            onClick={() => setMenuOpen(false)}
+          >
+            Edit profile
           </Link>
           <button
             type="button"
