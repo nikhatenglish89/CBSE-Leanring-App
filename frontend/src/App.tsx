@@ -9,6 +9,7 @@ import { HomePage } from "./pages/HomePage";
 import { LessonDetailPage } from "./pages/LessonDetailPage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { PracticeSetPage } from "./pages/PracticeSetPage";
 import { PracticeTestsPage } from "./pages/PracticeTestsPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { RegisterPage } from "./pages/RegisterPage";
@@ -79,6 +80,14 @@ export function App() {
               element={
                 <ProtectedRoute>
                   <PracticeTestsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/practice-tests/:practiceSetId"
+              element={
+                <ProtectedRoute>
+                  <PracticeSetPage />
                 </ProtectedRoute>
               }
             />

@@ -16,6 +16,7 @@ from app.modules.classes.router import router as classes_router
 from app.modules.courses.router import router as courses_router
 from app.modules.lessons.router import router as lessons_router
 from app.modules.materials.router import router as materials_router
+from app.modules.practice.router import router as practice_router
 from app.modules.subjects.router import chapter_router as chapters_router
 from app.modules.subjects.router import router as subjects_router
 from app.modules.users.router import router as users_router
@@ -45,6 +46,7 @@ def create_app() -> FastAPI:
     app.include_router(courses_router)
     app.include_router(lessons_router)
     app.include_router(materials_router)
+    app.include_router(practice_router)
 
     @app.get("/health")
     def health() -> dict:

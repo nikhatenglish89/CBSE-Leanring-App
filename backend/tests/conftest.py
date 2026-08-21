@@ -9,6 +9,7 @@ from app.main import app
 from app.models.base import Base
 from app.modules.auth.seed import seed_roles_and_permissions
 from app.modules.classes.seed import seed_academic_baseline
+from app.modules.practice.seed import seed_practice_sets
 
 # In-memory SQLite shared across the whole test session via StaticPool (a
 # single connection), so tables created once persist across requests within
@@ -39,6 +40,7 @@ def _setup_database():
     try:
         seed_roles_and_permissions(db)
         seed_academic_baseline(db)
+        seed_practice_sets(db)
     finally:
         db.close()
     yield

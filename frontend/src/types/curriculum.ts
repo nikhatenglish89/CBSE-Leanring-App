@@ -102,3 +102,46 @@ export interface VideoBrowseOut {
   course_title: string;
   course_status: CourseStatus;
 }
+
+export interface PracticeSetSummaryOut {
+  id: string;
+  class_id: string;
+  class_name: string;
+  subject_id: string;
+  subject_name: string;
+  title: string;
+  question_count: number;
+}
+
+export interface PracticeQuestionOut {
+  id: string;
+  question_text: string;
+  options: string[];
+  display_order: number;
+}
+
+export interface PracticeSetDetailOut {
+  id: string;
+  class_id: string;
+  class_name: string;
+  subject_id: string;
+  subject_name: string;
+  title: string;
+  questions: PracticeQuestionOut[];
+}
+
+export interface PracticeQuestionResult {
+  question_id: string;
+  question_text: string;
+  options: string[];
+  correct_index: number;
+  selected_index: number | null;
+  is_correct: boolean;
+  explanation: string;
+}
+
+export interface PracticeSubmitResult {
+  score: number;
+  total: number;
+  results: PracticeQuestionResult[];
+}
