@@ -1,7 +1,7 @@
 import { type FormEvent, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
-import { Badge, Button, Card, Input, Spinner, useToast } from "../../components/ui";
+import { Badge, Button, Card, CardSkeleton, EmptyState, Input, useToast } from "../../components/ui";
 import { useCourse, useCourseSections, useCreateSection, useUpdateCourseStatus } from "../../hooks/useCourses";
 import { TeacherSectionCard } from "./TeacherSectionCard";
 
@@ -40,33 +40,45 @@ export function TeacherCourseDetailPage() {
 
   if (isLoading || !course) {
     return (
-      <div className="mx-auto max-w-4xl px-4 py-12">
-        <Spinner label="Loading course" />
+      <div className="page-shell flex flex-col gap-4 py-10">
+        <CardSkeleton />
+        <CardSkeleton />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12">
-      <div className="flex items-start justify-between gap-4">
+    <div className="page-shell flex flex-col gap-8 py-10">
+      <Link to="/teacher" className="text-sm font-medium text-brand-600 hover:underline">
+        &larr; Back to your courses
+      </Link>
+
+      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-gradient-to-br from-brand-50 to-white p-6 sm:flex-row sm:items-start sm:justify-between sm:p-8">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">{course.title}</h1>
-          <p className="mt-1 text-sm text-slate-600">{course.description}</p>
-        </div>
-        <div className="flex items-center gap-3">
           <Badge tone={course.status === "PUBLISHED" ? "success" : "warning"}>{course.status}</Badge>
-          <Button variant="secondary" onClick={togglePublish} isLoading={updateStatus.isPending}>
-            {course.status === "PUBLISHED" ? "Unpublish" : "Publish"}
-          </Button>
+          <h1 className="mt-3 text-2xl font-bold text-slate-900 sm:text-3xl">{course.title}</h1>
+          <p className="mt-2 max-w-2xl text-slate-600">
+            {course.description || "No description provided yet."}
+          </p>
         </div>
+        <Button
+          variant={course.status === "PUBLISHED" ? "secondary" : "primary"}
+          onClick={togglePublish}
+          isLoading={updateStatus.isPending}
+          className="shrink-0"
+        >
+          {course.status === "PUBLISHED" ? "Unpublish" : "Publish course"}
+        </Button>
       </div>
 
-      <Card className="mt-6">
-        <h2 className="text-lg font-medium text-slate-900">Add a section</h2>
-        <form className="mt-4 flex items-end gap-3" onSubmit={onCreateSection}>
+      <Card>
+        <h2 className="text-lg font-semibold text-slate-900">Add a section</h2>
+        <p className="mt-1 text-sm text-slate-500">Sections organize lessons into a syllabus students can follow.</p>
+        <form className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end" onSubmit={onCreateSection}>
           <div className="flex-1">
             <Input
               label="Section title"
+              placeholder="e.g. Chapter 1 — Real Numbers"
               value={sectionTitle}
               onChange={(event) => setSectionTitle(event.target.value)}
             />
@@ -77,13 +89,16 @@ export function TeacherCourseDetailPage() {
         </form>
       </Card>
 
-      <div className="mt-8 flex flex-col gap-4">
-        {sections?.map((section) => (
-          <TeacherSectionCard key={section.id} section={section} />
-        ))}
-        {sections?.length === 0 && (
-          <p className="text-sm text-slate-500">No sections yet — add one above to start building the course.</p>
-        )}
+      <div>
+        <h2 className="mb-4 text-lg font-semibold text-slate-900">Course content</h2>
+        <div className="flex flex-col gap-4">
+          {sections?.map((section, index) => (
+            <TeacherSectionCard key={section.id} section={section} index={index} />
+          ))}
+          {sections?.length === 0 && (
+            <EmptyState icon="🗂️" title="No sections yet" description="Add one above to start building the course." />
+          )}
+        </div>
       </div>
     </div>
   );

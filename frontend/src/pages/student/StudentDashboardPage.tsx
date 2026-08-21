@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 
-import { Badge, Card, Select, Spinner } from "../../components/ui";
+import { CourseCard } from "../../components/courses/CourseCard";
+import { PageHeader } from "../../components/layout/PageHeader";
+import { Card, CardSkeleton, EmptyState, Select } from "../../components/ui";
 import { useAuth } from "../../hooks/useAuth";
 import { useCourses } from "../../hooks/useCourses";
 import { useClasses, useSubjects } from "../../hooks/useCurriculum";
@@ -18,11 +19,14 @@ export function StudentDashboardPage() {
   });
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12">
-      <h1 className="text-2xl font-semibold text-slate-900">Welcome, {user?.full_name}</h1>
-      <p className="mt-1 text-sm text-slate-600">Browse published courses below.</p>
+    <div className="page-shell flex flex-col gap-8 py-10">
+      <PageHeader
+        eyebrow="Student"
+        title={`Welcome back, ${user?.full_name?.split(" ")[0] ?? "there"}`}
+        subtitle="Browse published courses and pick up where you left off."
+      />
 
-      <Card className="mt-6 grid gap-4 sm:grid-cols-2">
+      <Card className="grid gap-4 sm:grid-cols-2">
         <Select
           label="Class"
           value={classId}
@@ -53,24 +57,29 @@ export function StudentDashboardPage() {
         </Select>
       </Card>
 
-      <div className="mt-8">
-        {isLoading && <Spinner label="Loading courses" />}
-        <div className="flex flex-col gap-3">
-          {courses?.map((course) => (
-            <Link key={course.id} to={`/student/courses/${course.id}`}>
-              <Card className="flex items-center justify-between hover:border-brand-300">
-                <div>
-                  <p className="font-medium text-slate-900">{course.title}</p>
-                  <p className="text-sm text-slate-500">{course.description || "No description yet."}</p>
-                </div>
-                <Badge tone={course.access_type === "FREE" ? "success" : "brand"}>{course.access_type}</Badge>
-              </Card>
-            </Link>
-          ))}
-          {courses?.length === 0 && (
-            <p className="text-sm text-slate-500">No published courses match these filters yet.</p>
-          )}
-        </div>
+      <div>
+        <h2 className="mb-4 text-lg font-semibold text-slate-900">Courses for you</h2>
+        {isLoading && (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <CardSkeleton key={i} />
+            ))}
+          </div>
+        )}
+        {!isLoading && courses && courses.length > 0 && (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {courses.map((course) => (
+              <CourseCard key={course.id} course={course} to={`/student/courses/${course.id}`} />
+            ))}
+          </div>
+        )}
+        {!isLoading && courses?.length === 0 && (
+          <EmptyState
+            icon="📚"
+            title="No courses match these filters"
+            description="Try a different class or subject, or check back soon — teachers are adding new courses regularly."
+          />
+        )}
       </div>
     </div>
   );

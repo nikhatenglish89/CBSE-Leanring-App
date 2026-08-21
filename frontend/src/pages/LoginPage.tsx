@@ -3,7 +3,8 @@ import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 
-import { Button, Card, Input, useToast } from "../components/ui";
+import { AuthLayout } from "../components/layout/AuthLayout";
+import { Button, Input, useToast } from "../components/ui";
 import { useAuth } from "../hooks/useAuth";
 import { roleHomePath } from "../lib/roleRoutes";
 
@@ -34,29 +35,37 @@ export function LoginPage() {
   };
 
   return (
-    <div className="mx-auto flex max-w-md flex-col gap-6 px-4 py-16">
-      <h1 className="text-2xl font-semibold text-slate-900">Log in</h1>
-      <Card>
-        <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
-          <Input label="Email" type="email" autoComplete="email" error={errors.email?.message} {...register("email")} />
-          <Input
-            label="Password"
-            type="password"
-            autoComplete="current-password"
-            error={errors.password?.message}
-            {...register("password")}
-          />
-          <Button type="submit" isLoading={isLoggingIn}>
-            Log in
-          </Button>
-        </form>
-      </Card>
-      <p className="text-center text-sm text-slate-600">
-        Don't have an account?{" "}
-        <Link to="/register" className="font-medium text-brand-600 hover:underline">
-          Register
-        </Link>
-      </p>
-    </div>
+    <AuthLayout
+      title="Welcome back"
+      subtitle="Log in to continue where you left off."
+      footer={
+        <>
+          Don't have an account?{" "}
+          <Link to="/register" className="font-medium text-brand-600 hover:underline">
+            Register
+          </Link>
+        </>
+      }
+    >
+      <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
+        <Input
+          label="Email"
+          type="email"
+          autoComplete="email"
+          error={errors.email?.message}
+          {...register("email")}
+        />
+        <Input
+          label="Password"
+          type="password"
+          autoComplete="current-password"
+          error={errors.password?.message}
+          {...register("password")}
+        />
+        <Button type="submit" isLoading={isLoggingIn} className="mt-2 w-full">
+          Log in
+        </Button>
+      </form>
+    </AuthLayout>
   );
 }

@@ -4,7 +4,13 @@ import { Badge, Button, Card, Input, Select, useToast } from "../../components/u
 import { useCreateLesson, useSectionLessons } from "../../hooks/useCourses";
 import type { CourseSectionOut, LessonContentType } from "../../types/curriculum";
 
-export function TeacherSectionCard({ section }: { section: CourseSectionOut }) {
+const CONTENT_ICON: Record<LessonContentType, string> = {
+  TEXT: "📄",
+  VIDEO: "🎥",
+  PDF: "📎",
+};
+
+export function TeacherSectionCard({ section, index }: { section: CourseSectionOut; index: number }) {
   const { data: lessons } = useSectionLessons(section.id);
   const createLesson = useCreateLesson();
   const { showToast } = useToast();
@@ -24,36 +30,45 @@ export function TeacherSectionCard({ section }: { section: CourseSectionOut }) {
 
   return (
     <Card>
-      <h3 className="font-medium text-slate-900">{section.title}</h3>
-      <ul className="mt-3 flex flex-col gap-2">
+      <div className="flex items-center gap-3">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-50 text-xs font-semibold text-brand-700">
+          {index + 1}
+        </span>
+        <h3 className="font-semibold text-slate-900">{section.title}</h3>
+      </div>
+
+      <ul className="mt-4 flex flex-col divide-y divide-slate-100 border-t border-slate-100">
         {lessons?.map((lesson) => (
-          <li
-            key={lesson.id}
-            className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm"
-          >
-            <span>{lesson.title}</span>
-            <Badge tone="brand">{lesson.content_type}</Badge>
+          <li key={lesson.id} className="flex items-center gap-3 py-2.5 text-sm">
+            <span className="text-base">{CONTENT_ICON[lesson.content_type]}</span>
+            <span className="flex-1 text-slate-800">{lesson.title}</span>
+            <Badge tone="neutral">{lesson.content_type}</Badge>
           </li>
         ))}
-        {lessons?.length === 0 && <li className="text-sm text-slate-500">No lessons yet.</li>}
+        {lessons?.length === 0 && <li className="py-2.5 text-sm text-slate-500">No lessons yet.</li>}
       </ul>
 
-      <form className="mt-4 flex items-end gap-3" onSubmit={onCreate}>
+      <form className="mt-4 flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-end" onSubmit={onCreate}>
         <div className="flex-1">
-          <Input label="Lesson title" value={title} onChange={(event) => setTitle(event.target.value)} />
+          <Input
+            label="Lesson title"
+            placeholder="e.g. Introduction to Irrational Numbers"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+          />
         </div>
         <Select
           label="Type"
           value={contentType}
           onChange={(event) => setContentType(event.target.value as LessonContentType)}
-          className="w-32"
+          className="sm:w-32"
         >
           <option value="TEXT">Text</option>
           <option value="VIDEO">Video</option>
           <option value="PDF">PDF</option>
         </Select>
         <Button type="submit" isLoading={createLesson.isPending}>
-          Add
+          Add lesson
         </Button>
       </form>
     </Card>
