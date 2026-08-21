@@ -15,6 +15,7 @@ class UserOut(BaseModel):
     phone: str | None
     status: str
     role: str
+    email_verified: bool
     created_at: datetime
 
     @classmethod
@@ -28,6 +29,7 @@ class UserOut(BaseModel):
             phone=user.phone,
             status=user.status,
             role=user.role.name,
+            email_verified=user.email_verified_at is not None,
             created_at=user.created_at,
         )
 

@@ -44,6 +44,11 @@ def create_refresh_token(user_id: str) -> tuple[str, str, datetime]:
     return _create_token(user_id, "refresh", timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS))
 
 
+def create_email_verification_token(user_id: str) -> str:
+    token, _, _ = _create_token(user_id, "email_verify", timedelta(hours=24))
+    return token
+
+
 class TokenError(Exception):
     pass
 

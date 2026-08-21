@@ -30,6 +30,7 @@ export function RegisterPage() {
   const onSubmit = async (values: FormValues) => {
     try {
       const user = await registerUser(values);
+      showToast("Account created! Check your email to verify your address.", "success");
       navigate(roleHomePath(user.role));
     } catch {
       showToast("Could not create your account. The email may already be registered.", "error");

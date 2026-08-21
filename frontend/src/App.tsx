@@ -20,6 +20,7 @@ import { StudyVideosPage } from "./pages/StudyVideosPage";
 import { TeacherCourseDetailPage } from "./pages/teacher/TeacherCourseDetailPage";
 import { TeacherDashboardPage } from "./pages/teacher/TeacherDashboardPage";
 import { TeacherInteractionPage } from "./pages/TeacherInteractionPage";
+import { VerifyEmailPage } from "./pages/VerifyEmailPage";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 
 export function App() {
@@ -32,6 +33,7 @@ export function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route
               path="/profile"
               element={

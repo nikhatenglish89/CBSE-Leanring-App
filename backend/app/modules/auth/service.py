@@ -1,9 +1,14 @@
+import uuid
+
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
+from app.core.email import send_email
 from app.core.exceptions import AppError
 from app.core.security import (
     TokenError,
     create_access_token,
+    create_email_verification_token,
     create_refresh_token,
     decode_token,
     hash_password,
@@ -21,6 +26,38 @@ def _issue_token_pair(db: Session, user: User) -> TokenPair:
     refresh_token, jti, expires_at = create_refresh_token(str(user.id))
     auth_repo.create_refresh_token_record(db, user.id, jti, expires_at)
     return TokenPair(access_token=access_token, refresh_token=refresh_token)
+
+
+def send_verification_email(user: User) -> None:
+    token = create_email_verification_token(str(user.id))
+    verify_link = f"{settings.FRONTEND_URL.rstrip('/')}/verify-email?token={token}"
+    text_body = (
+        f"Hi {user.full_name},\n\n"
+        "Welcome to EduSphere CBSE! Please verify your email address by opening this link:\n"
+        f"{verify_link}\n\n"
+        "This link expires in 24 hours. If you didn't create this account, you can ignore this email."
+    )
+    html_body = f"""
+    <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+      <h2 style="color: #1558e0;">Welcome to EduSphere CBSE</h2>
+      <p>Hi {user.full_name},</p>
+      <p>Please verify your email address to finish setting up your account.</p>
+      <p style="margin: 24px 0;">
+        <a href="{verify_link}"
+           style="background: #1a6ff5; color: #fff; padding: 12px 24px; border-radius: 8px;
+                  text-decoration: none; font-weight: 600;">
+          Verify my email
+        </a>
+      </p>
+      <p style="color: #64748b; font-size: 13px;">
+        This link expires in 24 hours. If you didn't create this account, you can ignore this email.
+      </p>
+    </div>
+    """
+    try:
+        send_email(user.email, "Verify your EduSphere CBSE email", html_body, text_body)
+    except Exception as exc:  # noqa: BLE001 - best-effort; registration must not fail on email delivery
+        print(f"[email:send-failed] to={user.email} error={exc}")
 
 
 def register(db: Session, payload: RegisterRequest) -> User:
@@ -47,7 +84,34 @@ def register(db: Session, payload: RegisterRequest) -> User:
     elif payload.role == "TEACHER":
         users_repo.create_teacher_profile(db, user.id)
 
+    send_verification_email(user)
     return user
+
+
+def verify_email(db: Session, token: str) -> User:
+    try:
+        payload = decode_token(token, expected_type="email_verify")
+    except TokenError as exc:
+        raise AppError("INVALID_TOKEN", "This verification link is invalid or expired.", 400) from exc
+
+    try:
+        user_id = uuid.UUID(payload["sub"])
+    except (KeyError, ValueError) as exc:
+        raise AppError("INVALID_TOKEN", "This verification link is invalid or expired.", 400) from exc
+
+    user = users_repo.get_user_by_id(db, user_id)
+    if user is None:
+        raise AppError("INVALID_TOKEN", "This verification link is invalid or expired.", 400)
+
+    if user.email_verified_at is None:
+        user = users_repo.mark_email_verified(db, user)
+    return user
+
+
+def resend_verification_email(db: Session, user: User) -> None:
+    if user.email_verified_at is not None:
+        raise AppError("ALREADY_VERIFIED", "This email is already verified.", 400)
+    send_verification_email(user)
 
 
 def login(db: Session, email: str, password: str) -> tuple[User, TokenPair]:

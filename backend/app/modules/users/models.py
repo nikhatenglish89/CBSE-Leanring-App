@@ -1,7 +1,7 @@
 import uuid
-from datetime import date
+from datetime import date, datetime
 
-from sqlalchemy import Boolean, Date, ForeignKey, String, Text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDPKMixin
@@ -28,6 +28,7 @@ class User(UUIDPKMixin, TimestampMixin, Base):
     # breaking the require_permission() contract.
     role_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("roles.id"))
     status: Mapped[str] = mapped_column(String(20), default="ACTIVE")
+    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
     role: Mapped["Role"] = relationship(lazy="joined")
 

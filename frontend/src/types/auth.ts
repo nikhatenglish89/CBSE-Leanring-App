@@ -7,6 +7,7 @@ export interface User {
   phone: string | null;
   status: string;
   role: UserRole;
+  email_verified: boolean;
   created_at: string;
 }
 

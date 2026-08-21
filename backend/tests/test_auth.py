@@ -16,6 +16,7 @@ def test_register_success(client):
     assert body["success"] is True
     assert body["data"]["email"] == "alice@example.com"
     assert body["data"]["status"] == "ACTIVE"
+    assert body["data"]["email_verified"] is False
 
 
 def test_register_duplicate_email_conflicts(client):
@@ -86,3 +87,57 @@ def test_student_cannot_list_users(client):
     )
     assert resp.status_code == 403
     assert resp.json()["error"]["code"] == "PERMISSION_DENIED"
+
+
+def test_verify_email_with_valid_token(client):
+    from app.core.security import create_email_verification_token
+
+    register_resp = _register(client, email="grace@example.com")
+    user_id = register_resp.json()["data"]["id"]
+    tokens = _login(client, email="grace@example.com").json()["data"]
+
+    me = client.get(
+        "/api/v1/users/me", headers={"Authorization": f"Bearer {tokens['access_token']}"}
+    ).json()["data"]
+    assert me["email_verified"] is False
+
+    verify_token = create_email_verification_token(user_id)
+    resp = client.post("/api/v1/auth/verify-email", json={"token": verify_token})
+    assert resp.status_code == 200
+    assert resp.json()["data"]["verified"] is True
+
+    me_after = client.get(
+        "/api/v1/users/me", headers={"Authorization": f"Bearer {tokens['access_token']}"}
+    ).json()["data"]
+    assert me_after["email_verified"] is True
+
+
+def test_verify_email_with_invalid_token(client):
+    resp = client.post("/api/v1/auth/verify-email", json={"token": "not-a-real-token"})
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "INVALID_TOKEN"
+
+
+def test_resend_verification_then_blocked_once_verified(client):
+    from app.core.security import create_email_verification_token
+
+    register_resp = _register(client, email="heidi@example.com")
+    user_id = register_resp.json()["data"]["id"]
+    tokens = _login(client, email="heidi@example.com").json()["data"]
+    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+
+    resp = client.post("/api/v1/auth/resend-verification", headers=headers)
+    assert resp.status_code == 200
+    assert resp.json()["data"]["sent"] is True
+
+    verify_token = create_email_verification_token(user_id)
+    client.post("/api/v1/auth/verify-email", json={"token": verify_token})
+
+    resp = client.post("/api/v1/auth/resend-verification", headers=headers)
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "ALREADY_VERIFIED"
+
+
+def test_resend_verification_requires_auth(client):
+    resp = client.post("/api/v1/auth/resend-verification")
+    assert resp.status_code == 401

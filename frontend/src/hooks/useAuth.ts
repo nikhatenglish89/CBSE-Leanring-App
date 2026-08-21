@@ -57,6 +57,12 @@ export function useAuth() {
     },
   });
 
+  const resendVerificationMutation = useMutation({
+    mutationFn: async (): Promise<void> => {
+      await api.post("/auth/resend-verification");
+    },
+  });
+
   const logout = () => {
     const refreshToken = useAuthStore.getState().refreshToken;
     if (refreshToken) {
@@ -80,6 +86,8 @@ export function useAuth() {
     updateProfile: updateProfileMutation.mutateAsync,
     isUpdatingProfile: updateProfileMutation.isPending,
     updateProfileError: updateProfileMutation.error,
+    resendVerification: resendVerificationMutation.mutateAsync,
+    isResendingVerification: resendVerificationMutation.isPending,
     logout,
   };
 }

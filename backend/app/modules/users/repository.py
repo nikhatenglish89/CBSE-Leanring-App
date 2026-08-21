@@ -3,6 +3,7 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.models.base import utcnow
 from app.modules.users.models import ParentProfile, StudentProfile, TeacherProfile, User
 
 
@@ -64,3 +65,10 @@ def get_teacher_profile_by_user_id(db: Session, user_id: uuid.UUID) -> TeacherPr
 
 def get_teacher_profile_by_id(db: Session, profile_id: uuid.UUID) -> TeacherProfile | None:
     return db.get(TeacherProfile, profile_id)
+
+
+def mark_email_verified(db: Session, user: User) -> User:
+    user.email_verified_at = utcnow()
+    db.commit()
+    db.refresh(user)
+    return user
