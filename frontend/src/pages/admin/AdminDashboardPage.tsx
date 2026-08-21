@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from "react";
 
 import { PageHeader } from "../../components/layout/PageHeader";
+import { StudyLinksCard } from "../../components/StudyLinksCard";
 import { Button, Card, EmptyState, Input, Select, useToast } from "../../components/ui";
 import { useAuth } from "../../hooks/useAuth";
 import { useClasses, useCreateClass, useCreateSubject, useSubjects } from "../../hooks/useCurriculum";
@@ -48,6 +49,8 @@ export function AdminDashboardPage() {
         title={`Welcome back, ${user?.full_name?.split(" ")[0] ?? "there"}`}
         subtitle="Manage the curriculum taxonomy — classes and subjects."
       />
+
+      <StudyLinksCard />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>

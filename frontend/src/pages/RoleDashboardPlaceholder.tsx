@@ -1,3 +1,4 @@
+import { StudyLinksCard } from "../components/StudyLinksCard";
 import { Card } from "../components/ui";
 import { useAuth } from "../hooks/useAuth";
 
@@ -5,7 +6,7 @@ export function RoleDashboardPlaceholder({ roleLabel }: { roleLabel: string }) {
   const { user } = useAuth();
 
   return (
-    <div className="page-shell py-12">
+    <div className="page-shell flex flex-col gap-8 py-12">
       <Card className="mx-auto flex max-w-xl flex-col items-center gap-3 py-12 text-center">
         <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-50 text-2xl">
           🚧
@@ -18,6 +19,10 @@ export function RoleDashboardPlaceholder({ roleLabel }: { roleLabel: string }) {
           role routing already work end-to-end — this page just proves it.
         </p>
       </Card>
+
+      <div className="mx-auto w-full max-w-xl">
+        <StudyLinksCard />
+      </div>
     </div>
   );
 }

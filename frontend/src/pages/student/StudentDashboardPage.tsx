@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { CourseCard } from "../../components/courses/CourseCard";
 import { PageHeader } from "../../components/layout/PageHeader";
+import { StudyLinksCard } from "../../components/StudyLinksCard";
 import { Card, CardSkeleton, EmptyState, Select } from "../../components/ui";
 import { useAuth } from "../../hooks/useAuth";
 import { useCourses } from "../../hooks/useCourses";
@@ -25,6 +26,8 @@ export function StudentDashboardPage() {
         title={`Welcome back, ${user?.full_name?.split(" ")[0] ?? "there"}`}
         subtitle="Browse published courses and pick up where you left off."
       />
+
+      <StudyLinksCard />
 
       <Card className="grid gap-4 sm:grid-cols-2">
         <Select

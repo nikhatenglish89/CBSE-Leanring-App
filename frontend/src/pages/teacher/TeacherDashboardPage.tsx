@@ -2,6 +2,7 @@ import { type FormEvent, useState } from "react";
 
 import { CourseCard } from "../../components/courses/CourseCard";
 import { PageHeader } from "../../components/layout/PageHeader";
+import { StudyLinksCard } from "../../components/StudyLinksCard";
 import { Button, Card, CardSkeleton, EmptyState, Input, Select, useToast } from "../../components/ui";
 import { useAuth } from "../../hooks/useAuth";
 import { useCreateCourse, useCourses } from "../../hooks/useCourses";
@@ -79,6 +80,8 @@ export function TeacherDashboardPage() {
           </div>
         </Card>
       </div>
+
+      <StudyLinksCard />
 
       <Card>
         <h2 className="text-lg font-semibold text-slate-900">Create a course</h2>
