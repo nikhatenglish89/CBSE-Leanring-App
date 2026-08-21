@@ -16,5 +16,9 @@ class Lesson(UUIDPKMixin, TimestampMixin, SoftDeleteMixin, Base):
     chapter_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("chapters.id"), default=None)
     title: Mapped[str] = mapped_column(String(255))
     description: Mapped[str] = mapped_column(Text, default="")
+    # The actual lesson body (e.g. full poem/passage text for a TEXT
+    # lesson) — separate from `description`, which is a short blurb shown
+    # in syllabus listings.
+    content: Mapped[str] = mapped_column(Text, default="")
     content_type: Mapped[str] = mapped_column(String(20), default="TEXT")  # TEXT | VIDEO | PDF
     display_order: Mapped[int] = mapped_column(Integer, default=0)

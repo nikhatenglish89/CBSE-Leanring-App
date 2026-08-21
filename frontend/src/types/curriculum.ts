@@ -49,6 +49,7 @@ export interface LessonOut {
   chapter_id: string | null;
   title: string;
   description: string;
+  content: string;
   content_type: LessonContentType;
   display_order: number;
   created_at: string;

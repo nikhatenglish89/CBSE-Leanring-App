@@ -6,6 +6,7 @@ import { ToastProvider } from "./components/ui";
 import { queryClient } from "./lib/queryClient";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { HomePage } from "./pages/HomePage";
+import { LessonDetailPage } from "./pages/LessonDetailPage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { ProfilePage } from "./pages/ProfilePage";
@@ -32,6 +33,14 @@ export function App() {
               element={
                 <ProtectedRoute>
                   <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/lessons/:lessonId"
+              element={
+                <ProtectedRoute>
+                  <LessonDetailPage />
                 </ProtectedRoute>
               }
             />

@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 import { Badge } from "../../components/ui";
 import { useSectionLessons } from "../../hooks/useCourses";
 import type { CourseSectionOut, LessonContentType } from "../../types/curriculum";
@@ -36,10 +38,15 @@ export function StudentSectionCard({ section, index }: { section: CourseSectionO
       <div className="border-t border-slate-100 px-5 pb-4 pt-2">
         <ul className="flex flex-col divide-y divide-slate-100">
           {lessons?.map((lesson) => (
-            <li key={lesson.id} className="flex items-center gap-3 py-2.5 text-sm">
-              <span className="text-base">{CONTENT_ICON[lesson.content_type]}</span>
-              <span className="flex-1 text-slate-800">{lesson.title}</span>
-              <Badge tone="neutral">{lesson.content_type}</Badge>
+            <li key={lesson.id}>
+              <Link
+                to={`/lessons/${lesson.id}`}
+                className="flex items-center gap-3 py-2.5 text-sm transition-colors hover:text-brand-700"
+              >
+                <span className="text-base">{CONTENT_ICON[lesson.content_type]}</span>
+                <span className="flex-1 text-slate-800 hover:underline">{lesson.title}</span>
+                <Badge tone="neutral">{lesson.content_type}</Badge>
+              </Link>
             </li>
           ))}
           {lessons?.length === 0 && <li className="py-2.5 text-sm text-slate-500">No lessons yet.</li>}

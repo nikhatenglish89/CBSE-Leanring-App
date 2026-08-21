@@ -54,6 +54,7 @@ def create_lesson(db: Session, user: User, section_id: uuid.UUID, payload: Lesso
         chapter_id=payload.chapter_id,
         title=payload.title,
         description=payload.description,
+        content=payload.content,
         content_type=payload.content_type,
         display_order=payload.display_order,
     )
@@ -77,6 +78,7 @@ def update_lesson(db: Session, user: User, lesson_id: uuid.UUID, payload: Lesson
         lesson,
         title=payload.title,
         description=payload.description,
+        content=payload.content,
         content_type=payload.content_type,
         display_order=payload.display_order,
     )

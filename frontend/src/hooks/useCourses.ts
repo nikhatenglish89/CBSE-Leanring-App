@@ -126,6 +126,7 @@ interface CreateLessonPayload {
   title: string;
   content_type?: LessonContentType;
   description?: string;
+  content?: string;
 }
 
 export function useCreateLesson() {
@@ -137,5 +138,38 @@ export function useCreateLesson() {
     },
     onSuccess: (lesson) =>
       queryClient.invalidateQueries({ queryKey: ["section-lessons", lesson.course_section_id] }),
+  });
+}
+
+export function useLesson(lessonId: string | undefined) {
+  return useQuery({
+    queryKey: ["lesson", lessonId],
+    queryFn: async () => {
+      const { data } = await api.get<ApiSuccess<LessonOut>>(`/lessons/${lessonId}`);
+      return data.data;
+    },
+    enabled: Boolean(lessonId),
+  });
+}
+
+interface UpdateLessonPayload {
+  lessonId: string;
+  title?: string;
+  description?: string;
+  content?: string;
+  content_type?: LessonContentType;
+}
+
+export function useUpdateLesson() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ lessonId, ...payload }: UpdateLessonPayload) => {
+      const { data } = await api.patch<ApiSuccess<LessonOut>>(`/lessons/${lessonId}`, payload);
+      return data.data;
+    },
+    onSuccess: (lesson) => {
+      queryClient.invalidateQueries({ queryKey: ["lesson", lesson.id] });
+      queryClient.invalidateQueries({ queryKey: ["section-lessons", lesson.course_section_id] });
+    },
   });
 }
