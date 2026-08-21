@@ -56,3 +56,11 @@ def create_teacher_profile(db: Session, user_id: uuid.UUID) -> TeacherProfile:
     db.add(profile)
     db.commit()
     return profile
+
+
+def get_teacher_profile_by_user_id(db: Session, user_id: uuid.UUID) -> TeacherProfile | None:
+    return db.scalar(select(TeacherProfile).where(TeacherProfile.user_id == user_id))
+
+
+def get_teacher_profile_by_id(db: Session, profile_id: uuid.UUID) -> TeacherProfile | None:
+    return db.get(TeacherProfile, profile_id)

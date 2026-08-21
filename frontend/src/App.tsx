@@ -3,12 +3,16 @@ import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 
 import { ToastProvider } from "./components/ui";
 import { queryClient } from "./lib/queryClient";
+import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { RoleDashboardPlaceholder } from "./pages/RoleDashboardPlaceholder";
+import { StudentCourseDetailPage } from "./pages/student/StudentCourseDetailPage";
 import { StudentDashboardPage } from "./pages/student/StudentDashboardPage";
+import { TeacherCourseDetailPage } from "./pages/teacher/TeacherCourseDetailPage";
+import { TeacherDashboardPage } from "./pages/teacher/TeacherDashboardPage";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 
 export function App() {
@@ -28,16 +32,32 @@ export function App() {
                 </ProtectedRoute>
               }
             />
-            {/* Full teacher/parent/admin dashboards land in later phases;
-                these placeholders prove role-aware routing works end-to-end. */}
+            <Route
+              path="/student/courses/:courseId"
+              element={
+                <ProtectedRoute allow={["STUDENT"]}>
+                  <StudentCourseDetailPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/teacher"
               element={
                 <ProtectedRoute allow={["TEACHER"]}>
-                  <RoleDashboardPlaceholder roleLabel="Teacher" />
+                  <TeacherDashboardPage />
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/teacher/courses/:courseId"
+              element={
+                <ProtectedRoute allow={["TEACHER"]}>
+                  <TeacherCourseDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            {/* Parent dashboard lands in a later phase; this placeholder
+                proves role-aware routing works end-to-end. */}
             <Route
               path="/parent"
               element={
@@ -50,7 +70,7 @@ export function App() {
               path="/admin"
               element={
                 <ProtectedRoute allow={["ADMIN", "SUPER_ADMIN", "CONTENT_MANAGER", "SUPPORT_AGENT"]}>
-                  <RoleDashboardPlaceholder roleLabel="Admin" />
+                  <AdminDashboardPage />
                 </ProtectedRoute>
               }
             />
