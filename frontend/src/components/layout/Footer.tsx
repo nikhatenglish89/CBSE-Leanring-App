@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 
+import logoMark from "../../assets/edusphere-mark.png";
 import { BRAND } from "../../config/brand";
 
 const FOOTER_LINKS = [
@@ -16,9 +17,7 @@ export function Footer() {
       <div className="page-shell flex flex-col gap-10 py-12 sm:flex-row sm:justify-between">
         <div className="max-w-xs">
           <span className="flex items-center gap-2 font-display text-base font-bold tracking-tight text-slate-900">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-xs font-extrabold text-white">
-              E
-            </span>
+            <img src={logoMark} alt="" className="h-8 w-8 shrink-0 rounded-lg object-contain" />
             {BRAND.shortName}
           </span>
           <p className="mt-3 text-sm text-slate-500">

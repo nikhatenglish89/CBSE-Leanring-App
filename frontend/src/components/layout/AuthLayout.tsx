@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import logoMark from "../../assets/edusphere-mark.png";
 import { BRAND } from "../../config/brand";
 
 const HIGHLIGHTS = [
@@ -31,9 +32,7 @@ export function AuthLayout({
           aria-hidden="true"
         />
         <div className="relative">
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/15 text-lg font-extrabold">
-            E
-          </span>
+          <img src={logoMark} alt="" className="h-11 w-11 rounded-lg bg-white object-contain p-0.5 shadow-soft" />
           <h2 className="mt-8 max-w-sm text-3xl font-bold leading-tight">{BRAND.tagline}</h2>
         </div>
         <ul className="relative flex flex-col gap-3 text-sm text-brand-50/90">

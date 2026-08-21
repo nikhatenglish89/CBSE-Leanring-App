@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
+import logoMark from "../../assets/edusphere-mark.png";
 import { BRAND } from "../../config/brand";
 import { useAuth } from "../../hooks/useAuth";
 import { roleHomePath } from "../../lib/roleRoutes";
@@ -34,9 +35,7 @@ function initials(name: string): string {
 function Logo() {
   return (
     <span className="flex items-center gap-2 font-display text-lg font-bold tracking-tight text-slate-900">
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 text-sm font-extrabold text-white shadow-soft">
-        E
-      </span>
+      <img src={logoMark} alt="" className="h-9 w-9 shrink-0 rounded-lg object-contain" />
       {BRAND.shortName}
     </span>
   );
