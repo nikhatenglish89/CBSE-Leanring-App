@@ -66,6 +66,22 @@ export async function downloadMaterial(materialId: string, fileName: string) {
   URL.revokeObjectURL(url);
 }
 
+/** Fetches a material's bytes for inline viewing (as opposed to
+ * downloadMaterial, which saves the file to disk). Text files are
+ * returned as a string so callers can render them directly; everything
+ * else is returned as an object URL for use in an <iframe>/<img>. */
+export async function viewMaterial(
+  materialId: string,
+  materialType: string
+): Promise<{ kind: "text"; text: string } | { kind: "url"; url: string }> {
+  const response = await api.get(`/materials/${materialId}/download`, { responseType: "blob" });
+  const blob = response.data as Blob;
+  if (materialType === "TEXT") {
+    return { kind: "text", text: await blob.text() };
+  }
+  return { kind: "url", url: URL.createObjectURL(blob) };
+}
+
 export function useLessonVideo(lessonId: string | undefined) {
   return useQuery({
     queryKey: ["lesson-video", lessonId],

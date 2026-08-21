@@ -38,6 +38,23 @@ def test_teacher_can_upload_and_download_material(client):
     assert dl.headers["content-type"].startswith("application/pdf")
 
 
+def test_teacher_can_upload_text_file(client):
+    headers = _auth_headers(client, "teacher.textmaterial@example.com", "TEACHER")
+    lesson = _create_published_lesson(client, headers)
+
+    resp = client.post(
+        f"/api/v1/lessons/{lesson['id']}/materials",
+        headers=headers,
+        files={"file": ("summary.txt", b"Chapter summary in plain text.", "text/plain")},
+    )
+    assert resp.status_code == 201
+    assert resp.json()["data"]["material_type"] == "TEXT"
+
+    dl = client.get(f"/api/v1/materials/{resp.json()['data']['id']}/download", headers=headers)
+    assert dl.status_code == 200
+    assert dl.content == b"Chapter summary in plain text."
+
+
 def test_unsupported_file_type_rejected(client):
     headers = _auth_headers(client, "teacher.badtype@example.com", "TEACHER")
     lesson = _create_published_lesson(client, headers)

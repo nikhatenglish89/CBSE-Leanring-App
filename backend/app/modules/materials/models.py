@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, TimestampMixin, UUIDPKMixin
 
-MATERIAL_TYPES = ("PDF", "DOCUMENT", "PRESENTATION", "IMAGE", "OTHER")
+MATERIAL_TYPES = ("PDF", "DOCUMENT", "PRESENTATION", "IMAGE", "TEXT", "OTHER")
 
 # Per docs/ARCHITECTURE.md, object storage is meant to sit behind a
 # `StorageProvider` interface with S3 as the default adapter — but no S3

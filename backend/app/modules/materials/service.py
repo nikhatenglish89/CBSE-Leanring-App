@@ -26,6 +26,7 @@ ALLOWED_MIME_TYPES: dict[str, str] = {
     "image/png": "IMAGE",
     "image/jpeg": "IMAGE",
     "image/webp": "IMAGE",
+    "text/plain": "TEXT",
 }
 
 YOUTUBE_RE = re.compile(r"(youtube\.com|youtu\.be)", re.IGNORECASE)

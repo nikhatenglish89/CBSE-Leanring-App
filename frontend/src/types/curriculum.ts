@@ -55,7 +55,7 @@ export interface LessonOut {
   created_at: string;
 }
 
-export type MaterialType = "PDF" | "DOCUMENT" | "PRESENTATION" | "IMAGE" | "OTHER";
+export type MaterialType = "PDF" | "DOCUMENT" | "PRESENTATION" | "IMAGE" | "TEXT" | "OTHER";
 
 export interface LessonMaterialOut {
   id: string;
