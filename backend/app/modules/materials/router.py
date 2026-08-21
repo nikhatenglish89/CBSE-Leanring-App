@@ -7,11 +7,48 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.dependencies.auth import CurrentUser
+from app.dependencies.pagination import PaginationParams, get_pagination_params
 from app.modules.materials import service as materials_service
-from app.modules.materials.schemas import LessonMaterialOut, VideoOut, VideoSetRequest
+from app.modules.materials.schemas import (
+    LessonMaterialOut,
+    MaterialBrowseOut,
+    VideoBrowseOut,
+    VideoOut,
+    VideoSetRequest,
+)
 from app.schemas.envelope import success
 
 router = APIRouter(prefix="/api/v1", tags=["materials"])
+
+
+@router.get("/materials")
+def browse_materials(
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+    pagination: Annotated[PaginationParams, Depends(get_pagination_params)],
+    class_id: uuid.UUID | None = None,
+    subject_id: uuid.UUID | None = None,
+) -> dict:
+    rows, total = materials_service.browse_materials(
+        db, pagination.offset, pagination.page_size, class_id=class_id, subject_id=subject_id
+    )
+    data = [MaterialBrowseOut.from_row(m, l, c).model_dump(mode="json") for m, l, c in rows]
+    return success(data, meta={"page": pagination.page, "page_size": pagination.page_size, "total": total})
+
+
+@router.get("/videos")
+def browse_videos(
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+    pagination: Annotated[PaginationParams, Depends(get_pagination_params)],
+    class_id: uuid.UUID | None = None,
+    subject_id: uuid.UUID | None = None,
+) -> dict:
+    rows, total = materials_service.browse_videos(
+        db, pagination.offset, pagination.page_size, class_id=class_id, subject_id=subject_id
+    )
+    data = [VideoBrowseOut.from_row(v, l, c).model_dump(mode="json") for v, l, c in rows]
+    return success(data, meta={"page": pagination.page, "page_size": pagination.page_size, "total": total})
 
 
 @router.get("/lessons/{lesson_id}/materials")

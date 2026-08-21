@@ -9,13 +9,17 @@ import { HomePage } from "./pages/HomePage";
 import { LessonDetailPage } from "./pages/LessonDetailPage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { PracticeTestsPage } from "./pages/PracticeTestsPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { RoleDashboardPlaceholder } from "./pages/RoleDashboardPlaceholder";
 import { StudentCourseDetailPage } from "./pages/student/StudentCourseDetailPage";
 import { StudentDashboardPage } from "./pages/student/StudentDashboardPage";
+import { StudyMaterialsPage } from "./pages/StudyMaterialsPage";
+import { StudyVideosPage } from "./pages/StudyVideosPage";
 import { TeacherCourseDetailPage } from "./pages/teacher/TeacherCourseDetailPage";
 import { TeacherDashboardPage } from "./pages/teacher/TeacherDashboardPage";
+import { TeacherInteractionPage } from "./pages/TeacherInteractionPage";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 
 export function App() {
@@ -41,6 +45,38 @@ export function App() {
               element={
                 <ProtectedRoute>
                   <LessonDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/study-materials"
+              element={
+                <ProtectedRoute>
+                  <StudyMaterialsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/study-videos"
+              element={
+                <ProtectedRoute>
+                  <StudyVideosPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/teacher-interaction"
+              element={
+                <ProtectedRoute>
+                  <TeacherInteractionPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/practice-tests"
+              element={
+                <ProtectedRoute>
+                  <PracticeTestsPage />
                 </ProtectedRoute>
               }
             />

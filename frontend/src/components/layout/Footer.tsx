@@ -4,10 +4,10 @@ import logoMark from "../../assets/edusphere-mark.png";
 import { BRAND } from "../../config/brand";
 
 const FOOTER_LINKS = [
-  { label: "Study Materials", to: "/#study-materials" },
-  { label: "Study Videos", to: "/#study-videos" },
-  { label: "Teacher Interaction", to: "/#teacher-interaction" },
-  { label: "Practice Tests", to: "/#practice-tests" },
+  { label: "Study Materials", to: "/study-materials" },
+  { label: "Study Videos", to: "/study-videos" },
+  { label: "Teacher Interaction", to: "/teacher-interaction" },
+  { label: "Practice Tests", to: "/practice-tests" },
 ];
 
 export function Footer() {

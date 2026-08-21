@@ -18,11 +18,11 @@ const ROLE_LABEL: Record<UserRole, string> = {
   SUPPORT_AGENT: "Support Agent",
 };
 
-const PUBLIC_NAV_LINKS = [
-  { label: "Study Materials", to: "/#study-materials" },
-  { label: "Study Videos", to: "/#study-videos" },
-  { label: "Teacher Interaction", to: "/#teacher-interaction" },
-  { label: "Practice Tests", to: "/#practice-tests" },
+const FEATURE_NAV_LINKS = [
+  { label: "Study Materials", to: "/study-materials" },
+  { label: "Study Videos", to: "/study-videos" },
+  { label: "Teacher Interaction", to: "/teacher-interaction" },
+  { label: "Practice Tests", to: "/practice-tests" },
 ];
 
 function initials(name: string): string {
@@ -69,6 +69,18 @@ export function Header() {
               </Link>
             </nav>
 
+            <nav className="hidden items-center gap-1 lg:flex">
+              {FEATURE_NAV_LINKS.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+
             <div className="hidden items-center gap-3 md:flex">
               <Link
                 to="/profile"
@@ -107,7 +119,7 @@ export function Header() {
         ) : (
           <>
             <nav className="hidden items-center gap-1 lg:flex">
-              {PUBLIC_NAV_LINKS.map((link) => (
+              {FEATURE_NAV_LINKS.map((link) => (
                 <Link
                   key={link.to}
                   to={link.to}
@@ -147,6 +159,16 @@ export function Header() {
           >
             Dashboard
           </Link>
+          {FEATURE_NAV_LINKS.map((link) => (
+            <Link
+              key={link.to}
+              to={link.to}
+              className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+              onClick={() => setMenuOpen(false)}
+            >
+              {link.label}
+            </Link>
+          ))}
           <Link
             to="/profile"
             className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"

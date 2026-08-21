@@ -13,25 +13,36 @@ const TONE_ICON_CLASSES: Record<Tone, string> = {
   rose: "bg-rose-100 text-rose-600",
 };
 
-export const HOME_FEATURES: { id: string; icon: string; title: string; description: string; tone: Tone; comingSoon: boolean }[] = [
+export const HOME_FEATURES: {
+  id: string;
+  to: string;
+  icon: string;
+  title: string;
+  description: string;
+  tone: Tone;
+  comingSoon: boolean;
+}[] = [
   {
     id: "study-materials",
+    to: "/study-materials",
     icon: "📚",
     title: "Study Materials",
-    description: "Chapter-wise notes, NCERT solutions, and revision material for every CBSE subject.",
+    description: "Notes, PDFs, and documents your teachers upload — browse by class and subject.",
     tone: "accent",
-    comingSoon: true,
+    comingSoon: false,
   },
   {
     id: "study-videos",
+    to: "/study-videos",
     icon: "🎥",
     title: "Study Videos",
-    description: "Structured, chapter-wise video lessons mapped to the CBSE syllabus for classes VI–XII.",
+    description: "Video lessons attached to published courses, mapped to the CBSE syllabus VI–XII.",
     tone: "brand",
-    comingSoon: true,
+    comingSoon: false,
   },
   {
     id: "teacher-interaction",
+    to: "/teacher-interaction",
     icon: "🧑‍🏫",
     title: "Teacher Interaction",
     description: "Ask questions, join live classes, and get doubts cleared directly by real teachers.",
@@ -40,6 +51,7 @@ export const HOME_FEATURES: { id: string; icon: string; title: string; descripti
   },
   {
     id: "practice-tests",
+    to: "/practice-tests",
     icon: "📝",
     title: "Practice Tests",
     description: "Chapter and full-syllabus tests with instant scoring to track real progress.",
@@ -185,24 +197,29 @@ export function HomePage() {
         </div>
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {HOME_FEATURES.map((feature) => (
-            <div
+            <Link
               key={feature.id}
               id={feature.id}
+              to={feature.to}
               className="hover-lift scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-card"
             >
               <span
-                className={`flex h-12 w-12 items-center justify-center rounded-2xl text-2xl ${TONE_ICON_CLASSES[feature.tone]}`}
+                className={`mx-auto flex h-12 w-12 items-center justify-center rounded-2xl text-2xl ${TONE_ICON_CLASSES[feature.tone]}`}
               >
                 {feature.icon}
               </span>
               <h3 className="mt-4 font-semibold text-slate-900">{feature.title}</h3>
               <p className="mt-2 text-sm text-slate-600">{feature.description}</p>
-              {feature.comingSoon && (
+              {feature.comingSoon ? (
                 <Badge tone="warning" className="mt-4 gap-1">
                   <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> Coming soon
                 </Badge>
+              ) : (
+                <span className="mt-4 inline-block text-sm font-medium text-brand-600">
+                  Browse now &rarr;
+                </span>
               )}
-            </div>
+            </Link>
           ))}
         </div>
       </section>

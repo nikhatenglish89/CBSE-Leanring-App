@@ -1,8 +1,10 @@
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.modules.courses.models import Course, CourseSection
+from app.modules.lessons.models import Lesson
 from app.modules.materials.models import LessonMaterial, Video
 
 
@@ -70,3 +72,50 @@ def update_video(db: Session, obj: Video, *, provider: str, provider_ref: str, t
 def delete_video(db: Session, obj: Video) -> None:
     db.delete(obj)
     db.commit()
+
+
+def _published_scope(stmt, *, class_id: uuid.UUID | None, subject_id: uuid.UUID | None):
+    stmt = stmt.where(
+        Course.status == "PUBLISHED", Course.deleted_at.is_(None), Lesson.deleted_at.is_(None)
+    )
+    if class_id is not None:
+        stmt = stmt.where(Course.class_id == class_id)
+    if subject_id is not None:
+        stmt = stmt.where(Course.subject_id == subject_id)
+    return stmt
+
+
+def browse_materials(
+    db: Session, offset: int, limit: int, *, class_id: uuid.UUID | None = None,
+    subject_id: uuid.UUID | None = None,
+) -> tuple[list[tuple[LessonMaterial, Lesson, Course]], int]:
+    stmt = (
+        select(LessonMaterial, Lesson, Course)
+        .join(Lesson, LessonMaterial.lesson_id == Lesson.id)
+        .join(CourseSection, Lesson.course_section_id == CourseSection.id)
+        .join(Course, CourseSection.course_id == Course.id)
+    )
+    stmt = _published_scope(stmt, class_id=class_id, subject_id=subject_id)
+    total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    rows = db.execute(
+        stmt.order_by(LessonMaterial.created_at.desc()).offset(offset).limit(limit)
+    ).all()
+    return [tuple(row) for row in rows], total
+
+
+def browse_videos(
+    db: Session, offset: int, limit: int, *, class_id: uuid.UUID | None = None,
+    subject_id: uuid.UUID | None = None,
+) -> tuple[list[tuple[Video, Lesson, Course]], int]:
+    stmt = (
+        select(Video, Lesson, Course)
+        .join(Lesson, Video.lesson_id == Lesson.id)
+        .join(CourseSection, Lesson.course_section_id == CourseSection.id)
+        .join(Course, CourseSection.course_id == Course.id)
+    )
+    stmt = _published_scope(stmt, class_id=class_id, subject_id=subject_id)
+    total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    rows = db.execute(
+        stmt.order_by(Video.created_at.desc()).offset(offset).limit(limit)
+    ).all()
+    return [tuple(row) for row in rows], total

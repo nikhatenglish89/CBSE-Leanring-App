@@ -153,3 +153,73 @@ def test_teacher_can_set_and_replace_video(client):
     assert resp.status_code == 204
     resp = client.get(f"/api/v1/lessons/{lesson['id']}/video", headers=headers)
     assert resp.json()["data"] is None
+
+
+def test_browse_materials_and_videos_only_shows_published_courses(client):
+    headers = _auth_headers(client, "teacher.browse@example.com", "TEACHER")
+    class_id, subject_id = _get_seeded_class_and_subject(client, headers)
+
+    published = client.post(
+        "/api/v1/courses",
+        json={"class_id": class_id, "subject_id": subject_id, "title": "Browsable Course"},
+        headers=headers,
+    ).json()["data"]
+    pub_section = client.post(
+        f"/api/v1/courses/{published['id']}/sections", json={"title": "Section 1"}, headers=headers
+    ).json()["data"]
+    pub_lesson = client.post(
+        f"/api/v1/sections/{pub_section['id']}/lessons", json={"title": "Browsable Lesson"}, headers=headers
+    ).json()["data"]
+    client.patch(f"/api/v1/courses/{published['id']}", json={"status": "PUBLISHED"}, headers=headers)
+    client.post(
+        f"/api/v1/lessons/{pub_lesson['id']}/materials",
+        headers=headers,
+        files={"file": ("public.pdf", b"%PDF-1.4 public", "application/pdf")},
+    )
+    client.put(
+        f"/api/v1/lessons/{pub_lesson['id']}/video",
+        headers=headers,
+        json={"url": "https://www.youtube.com/watch?v=public123", "title": "Public video"},
+    )
+
+    draft = client.post(
+        "/api/v1/courses",
+        json={"class_id": class_id, "subject_id": subject_id, "title": "Draft Course"},
+        headers=headers,
+    ).json()["data"]
+    draft_section = client.post(
+        f"/api/v1/courses/{draft['id']}/sections", json={"title": "Section 1"}, headers=headers
+    ).json()["data"]
+    draft_lesson = client.post(
+        f"/api/v1/sections/{draft_section['id']}/lessons", json={"title": "Draft Lesson"}, headers=headers
+    ).json()["data"]
+    client.post(
+        f"/api/v1/lessons/{draft_lesson['id']}/materials",
+        headers=headers,
+        files={"file": ("draft.pdf", b"%PDF-1.4 draft", "application/pdf")},
+    )
+    client.put(
+        f"/api/v1/lessons/{draft_lesson['id']}/video",
+        headers=headers,
+        json={"url": "https://www.youtube.com/watch?v=draft123", "title": "Draft video"},
+    )
+
+    student_headers = _auth_headers(client, "student.browse@example.com", "STUDENT")
+
+    mat_resp = client.get("/api/v1/materials", headers=student_headers)
+    assert mat_resp.status_code == 200
+    mat_names = [m["file_name"] for m in mat_resp.json()["data"]]
+    assert "public.pdf" in mat_names
+    assert "draft.pdf" not in mat_names
+    published_entry = next(m for m in mat_resp.json()["data"] if m["file_name"] == "public.pdf")
+    assert published_entry["course_title"] == "Browsable Course"
+    assert published_entry["lesson_title"] == "Browsable Lesson"
+
+    vid_resp = client.get("/api/v1/videos", headers=student_headers)
+    assert vid_resp.status_code == 200
+    vid_titles = [v["title"] for v in vid_resp.json()["data"]]
+    assert "Public video" in vid_titles
+    assert "Draft video" not in vid_titles
+
+    unauth_resp = client.get("/api/v1/materials")
+    assert unauth_resp.status_code == 401

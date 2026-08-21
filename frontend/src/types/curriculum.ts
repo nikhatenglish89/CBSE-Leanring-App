@@ -76,3 +76,27 @@ export interface VideoOut {
   provider_ref: string;
   title: string;
 }
+
+export interface MaterialBrowseOut {
+  id: string;
+  material_type: MaterialType;
+  file_name: string;
+  mime_type: string;
+  file_size: number;
+  created_at: string;
+  lesson_id: string;
+  lesson_title: string;
+  course_id: string;
+  course_title: string;
+}
+
+export interface VideoBrowseOut {
+  id: string;
+  provider: VideoProvider;
+  provider_ref: string;
+  title: string;
+  lesson_id: string;
+  lesson_title: string;
+  course_id: string;
+  course_title: string;
+}

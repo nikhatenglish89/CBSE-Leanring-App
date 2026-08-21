@@ -155,3 +155,19 @@ def delete_video(db: Session, user: User, lesson_id: uuid.UUID) -> None:
     if existing is None:
         raise AppError("VIDEO_NOT_FOUND", "This lesson has no video.", 404)
     materials_repo.delete_video(db, existing)
+
+
+def browse_materials(
+    db: Session, offset: int, limit: int, *, class_id: uuid.UUID | None = None,
+    subject_id: uuid.UUID | None = None,
+):
+    # No ownership check needed - this only ever surfaces PUBLISHED courses,
+    # same visibility rule as the public course catalog.
+    return materials_repo.browse_materials(db, offset, limit, class_id=class_id, subject_id=subject_id)
+
+
+def browse_videos(
+    db: Session, offset: int, limit: int, *, class_id: uuid.UUID | None = None,
+    subject_id: uuid.UUID | None = None,
+):
+    return materials_repo.browse_videos(db, offset, limit, class_id=class_id, subject_id=subject_id)

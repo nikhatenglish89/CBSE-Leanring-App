@@ -2,7 +2,31 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "../lib/api";
 import type { ApiSuccess } from "../types/auth";
-import type { LessonMaterialOut, VideoOut } from "../types/curriculum";
+import type { LessonMaterialOut, MaterialBrowseOut, VideoBrowseOut, VideoOut } from "../types/curriculum";
+
+export function useBrowseMaterials(params: { classId?: string; subjectId?: string } = {}) {
+  return useQuery({
+    queryKey: ["browse-materials", params],
+    queryFn: async () => {
+      const { data } = await api.get<ApiSuccess<MaterialBrowseOut[]>>("/materials", {
+        params: { class_id: params.classId, subject_id: params.subjectId, page_size: 50 },
+      });
+      return data.data;
+    },
+  });
+}
+
+export function useBrowseVideos(params: { classId?: string; subjectId?: string } = {}) {
+  return useQuery({
+    queryKey: ["browse-videos", params],
+    queryFn: async () => {
+      const { data } = await api.get<ApiSuccess<VideoBrowseOut[]>>("/videos", {
+        params: { class_id: params.classId, subject_id: params.subjectId, page_size: 50 },
+      });
+      return data.data;
+    },
+  });
+}
 
 export function useLessonMaterials(lessonId: string | undefined) {
   return useQuery({
