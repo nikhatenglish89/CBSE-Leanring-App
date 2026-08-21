@@ -46,7 +46,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/85 backdrop-blur">
       <div className="page-shell flex h-16 items-center justify-between">
-        <Link to={homePath} className="shrink-0" onClick={() => setMenuOpen(false)}>
+        <Link to="/" className="shrink-0" onClick={() => setMenuOpen(false)}>
           <Logo />
         </Link>
 
