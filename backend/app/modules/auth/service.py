@@ -28,7 +28,11 @@ def _issue_token_pair(db: Session, user: User) -> TokenPair:
     return TokenPair(access_token=access_token, refresh_token=refresh_token)
 
 
-def send_verification_email(user: User) -> None:
+def send_verification_email(user: User) -> bool:
+    """Returns whether the email actually went out (or was a no-op in local
+    dev with no SMTP configured — see app/core/email.py). Callers that need
+    to tell the user the truth (e.g. a "Resend" button) should check this
+    instead of assuming success."""
     token = create_email_verification_token(str(user.id))
     verify_link = f"{settings.FRONTEND_URL.rstrip('/')}/verify-email?token={token}"
     text_body = (
@@ -56,8 +60,10 @@ def send_verification_email(user: User) -> None:
     """
     try:
         send_email(user.email, "Verify your EduSphere CBSE email", html_body, text_body)
-    except Exception as exc:  # noqa: BLE001 - best-effort; registration must not fail on email delivery
+        return True
+    except Exception as exc:  # noqa: BLE001 - reported to the caller, not raised, so registration never fails on email delivery
         print(f"[email:send-failed] to={user.email} error={exc}")
+        return False
 
 
 def register(db: Session, payload: RegisterRequest) -> User:
@@ -84,7 +90,8 @@ def register(db: Session, payload: RegisterRequest) -> User:
     elif payload.role == "TEACHER":
         users_repo.create_teacher_profile(db, user.id)
 
-    send_verification_email(user)
+    # Sending happens as a background task (scheduled by the router) so a
+    # slow/unreachable mail server can never delay the signup response.
     return user
 
 
@@ -111,7 +118,10 @@ def verify_email(db: Session, token: str) -> User:
 def resend_verification_email(db: Session, user: User) -> None:
     if user.email_verified_at is not None:
         raise AppError("ALREADY_VERIFIED", "This email is already verified.", 400)
-    send_verification_email(user)
+    if not send_verification_email(user):
+        raise AppError(
+            "EMAIL_SEND_FAILED", "Could not send the verification email right now. Please try again shortly.", 502
+        )
 
 
 def login(db: Session, email: str, password: str) -> tuple[User, TokenPair]:

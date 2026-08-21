@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, BackgroundTasks, Depends, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -20,8 +20,13 @@ router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
-def register(payload: RegisterRequest, db: Annotated[Session, Depends(get_db)]) -> dict:
+def register(
+    payload: RegisterRequest, db: Annotated[Session, Depends(get_db)], background_tasks: BackgroundTasks
+) -> dict:
     user = auth_service.register(db, payload)
+    # Backgrounded so a slow/unreachable mail server never delays the signup
+    # response itself — see auth_service.send_verification_email.
+    background_tasks.add_task(auth_service.send_verification_email, user)
     return success(UserOut.from_user(user).model_dump(mode="json"))
 
 

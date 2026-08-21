@@ -22,7 +22,10 @@ def send_email(to: str, subject: str, html_body: str, text_body: str) -> None:
     message.set_content(text_body)
     message.add_alternative(html_body, subtype="html")
 
-    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+    # Explicit timeout: an unreachable/firewalled SMTP port (e.g. Render's
+    # free tier blocks outbound 25/465/587 entirely) would otherwise hang
+    # for minutes before the OS-level connect finally gives up.
+    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
         server.starttls()
         server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
         server.send_message(message)
