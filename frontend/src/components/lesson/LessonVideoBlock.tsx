@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Button, Card, Input, useToast } from "../ui";
+import { Button, Card, Input, Skeleton, useToast } from "../ui";
 import { useDeleteVideo, useLessonVideo, useSetVideo } from "../../hooks/useMaterials";
 
 function extractYoutubeId(url: string): string | null {
@@ -25,7 +25,14 @@ export function LessonVideoBlock({ lessonId, canEdit }: { lessonId: string; canE
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
 
-  if (isLoading) return null;
+  if (isLoading) {
+    return (
+      <Card>
+        <h2 className="text-lg font-semibold text-slate-900">Video</h2>
+        <Skeleton className="mt-4 aspect-video w-full rounded-xl" />
+      </Card>
+    );
+  }
   if (!video && !canEdit) return null;
 
   const onSave = async () => {

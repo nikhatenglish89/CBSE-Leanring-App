@@ -7,7 +7,7 @@ import {
 } from "../../hooks/useMaterials";
 import { formatFileSize } from "../../lib/format";
 import type { MaterialType } from "../../types/curriculum";
-import { Button, Card, useToast } from "../ui";
+import { Button, Card, Skeleton, useToast } from "../ui";
 
 const MATERIAL_ICON: Record<MaterialType, string> = {
   PDF: "📕",
@@ -27,7 +27,17 @@ export function LessonMaterialsBlock({ lessonId, canEdit }: { lessonId: string; 
   const deleteMaterial = useDeleteMaterial(lessonId);
   const { showToast } = useToast();
 
-  if (isLoading) return null;
+  if (isLoading) {
+    return (
+      <Card>
+        <h2 className="text-lg font-semibold text-slate-900">Study materials</h2>
+        <div className="mt-4 flex flex-col gap-2">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      </Card>
+    );
+  }
   if ((materials?.length ?? 0) === 0 && !canEdit) return null;
 
   const onUploadChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
