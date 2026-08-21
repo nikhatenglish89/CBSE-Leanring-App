@@ -223,3 +223,36 @@ def test_browse_materials_and_videos_only_shows_published_courses(client):
 
     unauth_resp = client.get("/api/v1/materials")
     assert unauth_resp.status_code == 401
+
+
+def test_browse_shows_drafts_to_other_teachers_but_not_students(client):
+    owner_headers = _auth_headers(client, "teacher.draftowner@example.com", "TEACHER")
+    class_id, subject_id = _get_seeded_class_and_subject(client, owner_headers)
+
+    draft = client.post(
+        "/api/v1/courses",
+        json={"class_id": class_id, "subject_id": subject_id, "title": "Colleague's Draft"},
+        headers=owner_headers,
+    ).json()["data"]
+    section = client.post(
+        f"/api/v1/courses/{draft['id']}/sections", json={"title": "Section 1"}, headers=owner_headers
+    ).json()["data"]
+    lesson = client.post(
+        f"/api/v1/sections/{section['id']}/lessons", json={"title": "Draft Lesson"}, headers=owner_headers
+    ).json()["data"]
+    client.post(
+        f"/api/v1/lessons/{lesson['id']}/materials",
+        headers=owner_headers,
+        files={"file": ("colleague-notes.pdf", b"%PDF-1.4 colleague", "application/pdf")},
+    )
+
+    other_teacher_headers = _auth_headers(client, "teacher.colleague@example.com", "TEACHER")
+    resp = client.get("/api/v1/materials", headers=other_teacher_headers)
+    assert resp.status_code == 200
+    names = [m["file_name"] for m in resp.json()["data"]]
+    assert "colleague-notes.pdf" in names
+
+    student_headers = _auth_headers(client, "student.nodrafts@example.com", "STUDENT")
+    resp = client.get("/api/v1/materials", headers=student_headers)
+    names = [m["file_name"] for m in resp.json()["data"]]
+    assert "colleague-notes.pdf" not in names

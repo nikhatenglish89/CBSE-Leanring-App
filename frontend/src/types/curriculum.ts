@@ -88,6 +88,7 @@ export interface MaterialBrowseOut {
   lesson_title: string;
   course_id: string;
   course_title: string;
+  course_status: CourseStatus;
 }
 
 export interface VideoBrowseOut {
@@ -99,4 +100,5 @@ export interface VideoBrowseOut {
   lesson_title: string;
   course_id: string;
   course_title: string;
+  course_status: CourseStatus;
 }

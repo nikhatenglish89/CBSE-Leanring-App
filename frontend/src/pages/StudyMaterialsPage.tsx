@@ -32,7 +32,7 @@ export function StudyMaterialsPage() {
       <PageHeader
         eyebrow="Study Materials"
         title="Notes, PDFs, and documents from your teachers"
-        subtitle="Everything uploaded to a published course — filter by class or subject, then open a file straight from its lesson."
+        subtitle="Everything uploaded across the platform — filter by class or subject, then open a file straight from its lesson. Teachers and staff also see drafts still in progress, marked below."
       />
 
       <Card className="grid gap-4 sm:grid-cols-2">
@@ -89,6 +89,7 @@ export function StudyMaterialsPage() {
                     {material.course_title} &middot; {material.lesson_title}
                   </p>
                 </div>
+                {material.course_status === "DRAFT" && <Badge tone="warning">Draft</Badge>}
                 <Badge tone="neutral">{formatFileSize(material.file_size)}</Badge>
               </Link>
             </li>

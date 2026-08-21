@@ -74,10 +74,10 @@ def delete_video(db: Session, obj: Video) -> None:
     db.commit()
 
 
-def _published_scope(stmt, *, class_id: uuid.UUID | None, subject_id: uuid.UUID | None):
-    stmt = stmt.where(
-        Course.status == "PUBLISHED", Course.deleted_at.is_(None), Lesson.deleted_at.is_(None)
-    )
+def _browse_scope(stmt, *, include_drafts: bool, class_id: uuid.UUID | None, subject_id: uuid.UUID | None):
+    stmt = stmt.where(Course.deleted_at.is_(None), Lesson.deleted_at.is_(None))
+    if not include_drafts:
+        stmt = stmt.where(Course.status == "PUBLISHED")
     if class_id is not None:
         stmt = stmt.where(Course.class_id == class_id)
     if subject_id is not None:
@@ -86,8 +86,8 @@ def _published_scope(stmt, *, class_id: uuid.UUID | None, subject_id: uuid.UUID 
 
 
 def browse_materials(
-    db: Session, offset: int, limit: int, *, class_id: uuid.UUID | None = None,
-    subject_id: uuid.UUID | None = None,
+    db: Session, offset: int, limit: int, *, include_drafts: bool = False,
+    class_id: uuid.UUID | None = None, subject_id: uuid.UUID | None = None,
 ) -> tuple[list[tuple[LessonMaterial, Lesson, Course]], int]:
     stmt = (
         select(LessonMaterial, Lesson, Course)
@@ -95,7 +95,7 @@ def browse_materials(
         .join(CourseSection, Lesson.course_section_id == CourseSection.id)
         .join(Course, CourseSection.course_id == Course.id)
     )
-    stmt = _published_scope(stmt, class_id=class_id, subject_id=subject_id)
+    stmt = _browse_scope(stmt, include_drafts=include_drafts, class_id=class_id, subject_id=subject_id)
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     rows = db.execute(
         stmt.order_by(LessonMaterial.created_at.desc()).offset(offset).limit(limit)
@@ -104,8 +104,8 @@ def browse_materials(
 
 
 def browse_videos(
-    db: Session, offset: int, limit: int, *, class_id: uuid.UUID | None = None,
-    subject_id: uuid.UUID | None = None,
+    db: Session, offset: int, limit: int, *, include_drafts: bool = False,
+    class_id: uuid.UUID | None = None, subject_id: uuid.UUID | None = None,
 ) -> tuple[list[tuple[Video, Lesson, Course]], int]:
     stmt = (
         select(Video, Lesson, Course)
@@ -113,7 +113,7 @@ def browse_videos(
         .join(CourseSection, Lesson.course_section_id == CourseSection.id)
         .join(Course, CourseSection.course_id == Course.id)
     )
-    stmt = _published_scope(stmt, class_id=class_id, subject_id=subject_id)
+    stmt = _browse_scope(stmt, include_drafts=include_drafts, class_id=class_id, subject_id=subject_id)
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     rows = db.execute(
         stmt.order_by(Video.created_at.desc()).offset(offset).limit(limit)

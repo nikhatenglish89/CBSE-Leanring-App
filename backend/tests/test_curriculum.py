@@ -119,6 +119,26 @@ def test_draft_course_hidden_from_other_users_but_visible_to_owner(client):
     assert resp.status_code == 200
 
 
+def test_draft_course_visible_to_other_teachers_but_not_editable(client):
+    owner_headers = _auth_headers(client, "teacher.draftowner2@example.com", "TEACHER")
+    class_id, subject_id = _get_seeded_class_and_subject(client, owner_headers)
+    course = client.post(
+        "/api/v1/courses",
+        json={"class_id": class_id, "subject_id": subject_id, "title": "Colleague Drafting"},
+        headers=owner_headers,
+    ).json()["data"]
+
+    other_teacher_headers = _auth_headers(client, "teacher.peeking@example.com", "TEACHER")
+    resp = client.get(f"/api/v1/courses/{course['id']}", headers=other_teacher_headers)
+    assert resp.status_code == 200
+
+    # Viewing is allowed, but editing someone else's course still isn't.
+    resp = client.patch(
+        f"/api/v1/courses/{course['id']}", json={"title": "Hijacked"}, headers=other_teacher_headers
+    )
+    assert resp.status_code == 403
+
+
 def test_published_course_visible_to_students_in_catalog(client):
     owner_headers = _auth_headers(client, "teacher.published@example.com", "TEACHER")
     class_id, subject_id = _get_seeded_class_and_subject(client, owner_headers)

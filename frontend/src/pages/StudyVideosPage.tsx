@@ -21,7 +21,7 @@ export function StudyVideosPage() {
       <PageHeader
         eyebrow="Study Videos"
         title="Video lessons from your teachers"
-        subtitle="Every video attached to a published course — filter by class or subject, then watch it on its lesson page."
+        subtitle="Every video attached across the platform — filter by class or subject, then watch it on its lesson page. Teachers and staff also see drafts still in progress, marked below."
       />
 
       <Card className="grid gap-4 sm:grid-cols-2">
@@ -84,9 +84,12 @@ export function StudyVideosPage() {
                   {video.course_title} &middot; {video.lesson_title}
                 </p>
               </div>
-              <Badge tone="neutral" className="w-fit">
-                {video.provider}
-              </Badge>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge tone="neutral" className="w-fit">
+                  {video.provider}
+                </Badge>
+                {video.course_status === "DRAFT" && <Badge tone="warning">Draft</Badge>}
+              </div>
             </Link>
           ))}
         </div>

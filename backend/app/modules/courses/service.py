@@ -76,12 +76,12 @@ def get_course_for_view(db: Session, user: User, course_id: uuid.UUID) -> Course
         raise AppError("COURSE_NOT_FOUND", "Course not found.", 404)
     if course.status == "PUBLISHED":
         return course
-    # Draft courses are only visible to their owning teacher or staff — a
-    # 404 (not 403) so a draft's existence isn't leaked to other students.
-    if _is_staff(user):
-        return course
-    profile = users_repo.get_teacher_profile_by_user_id(db, user.id)
-    if profile is not None and course.teacher_id == profile.id:
+    # Draft courses are visible to staff and to any teacher (so a teacher
+    # can see what colleagues are building, e.g. via the Study Materials/
+    # Videos browse pages, even before they publish) - but not to students
+    # or parents. A 404 (not 403) so a draft's existence isn't leaked to
+    # learners.
+    if _is_staff(user) or user.role.name == "TEACHER":
         return course
     raise AppError("COURSE_NOT_FOUND", "Course not found.", 404)
 

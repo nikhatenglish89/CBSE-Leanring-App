@@ -157,17 +157,29 @@ def delete_video(db: Session, user: User, lesson_id: uuid.UUID) -> None:
     materials_repo.delete_video(db, existing)
 
 
+# Students/parents only ever see materials from published courses (same
+# rule as the course catalog). Teachers and staff see everything, drafts
+# included and regardless of who owns the course — a teacher building a
+# lesson can see what materials colleagues have uploaded elsewhere, even
+# before they publish, instead of only their own courses.
+_LEARNER_ROLES = {"STUDENT", "PARENT"}
+
+
 def browse_materials(
-    db: Session, offset: int, limit: int, *, class_id: uuid.UUID | None = None,
+    db: Session, user: User, offset: int, limit: int, *, class_id: uuid.UUID | None = None,
     subject_id: uuid.UUID | None = None,
 ):
-    # No ownership check needed - this only ever surfaces PUBLISHED courses,
-    # same visibility rule as the public course catalog.
-    return materials_repo.browse_materials(db, offset, limit, class_id=class_id, subject_id=subject_id)
+    include_drafts = user.role.name not in _LEARNER_ROLES
+    return materials_repo.browse_materials(
+        db, offset, limit, include_drafts=include_drafts, class_id=class_id, subject_id=subject_id
+    )
 
 
 def browse_videos(
-    db: Session, offset: int, limit: int, *, class_id: uuid.UUID | None = None,
+    db: Session, user: User, offset: int, limit: int, *, class_id: uuid.UUID | None = None,
     subject_id: uuid.UUID | None = None,
 ):
-    return materials_repo.browse_videos(db, offset, limit, class_id=class_id, subject_id=subject_id)
+    include_drafts = user.role.name not in _LEARNER_ROLES
+    return materials_repo.browse_videos(
+        db, offset, limit, include_drafts=include_drafts, class_id=class_id, subject_id=subject_id
+    )

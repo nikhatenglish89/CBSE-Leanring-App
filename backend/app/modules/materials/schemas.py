@@ -51,6 +51,7 @@ class MaterialBrowseOut(BaseModel):
     lesson_title: str
     course_id: uuid.UUID
     course_title: str
+    course_status: str
 
     @classmethod
     def from_row(cls, material, lesson, course) -> "MaterialBrowseOut":
@@ -65,6 +66,7 @@ class MaterialBrowseOut(BaseModel):
             lesson_title=lesson.title,
             course_id=course.id,
             course_title=course.title,
+            course_status=course.status,
         )
 
 
@@ -77,6 +79,7 @@ class VideoBrowseOut(BaseModel):
     lesson_title: str
     course_id: uuid.UUID
     course_title: str
+    course_status: str
 
     @classmethod
     def from_row(cls, video, lesson, course) -> "VideoBrowseOut":
@@ -89,4 +92,5 @@ class VideoBrowseOut(BaseModel):
             lesson_title=lesson.title,
             course_id=course.id,
             course_title=course.title,
+            course_status=course.status,
         )

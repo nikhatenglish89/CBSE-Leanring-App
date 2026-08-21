@@ -30,7 +30,7 @@ def browse_materials(
     subject_id: uuid.UUID | None = None,
 ) -> dict:
     rows, total = materials_service.browse_materials(
-        db, pagination.offset, pagination.page_size, class_id=class_id, subject_id=subject_id
+        db, current_user, pagination.offset, pagination.page_size, class_id=class_id, subject_id=subject_id
     )
     data = [MaterialBrowseOut.from_row(m, l, c).model_dump(mode="json") for m, l, c in rows]
     return success(data, meta={"page": pagination.page, "page_size": pagination.page_size, "total": total})
@@ -45,7 +45,7 @@ def browse_videos(
     subject_id: uuid.UUID | None = None,
 ) -> dict:
     rows, total = materials_service.browse_videos(
-        db, pagination.offset, pagination.page_size, class_id=class_id, subject_id=subject_id
+        db, current_user, pagination.offset, pagination.page_size, class_id=class_id, subject_id=subject_id
     )
     data = [VideoBrowseOut.from_row(v, l, c).model_dump(mode="json") for v, l, c in rows]
     return success(data, meta={"page": pagination.page, "page_size": pagination.page_size, "total": total})
