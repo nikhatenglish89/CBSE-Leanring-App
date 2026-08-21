@@ -54,3 +54,25 @@ export interface LessonOut {
   display_order: number;
   created_at: string;
 }
+
+export type MaterialType = "PDF" | "DOCUMENT" | "PRESENTATION" | "IMAGE" | "OTHER";
+
+export interface LessonMaterialOut {
+  id: string;
+  lesson_id: string;
+  material_type: MaterialType;
+  file_name: string;
+  mime_type: string;
+  file_size: number;
+  created_at: string;
+}
+
+export type VideoProvider = "YOUTUBE" | "VIMEO" | "URL";
+
+export interface VideoOut {
+  id: string;
+  lesson_id: string;
+  provider: VideoProvider;
+  provider_ref: string;
+  title: string;
+}

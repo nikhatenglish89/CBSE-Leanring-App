@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
+import { LessonMaterialsBlock } from "../components/lesson/LessonMaterialsBlock";
+import { LessonVideoBlock } from "../components/lesson/LessonVideoBlock";
 import { Badge, Button, Card, CardSkeleton, Textarea, useToast } from "../components/ui";
 import { useAuth } from "../hooks/useAuth";
 import { useLesson, useUpdateLesson } from "../hooks/useCourses";
@@ -104,6 +106,9 @@ export function LessonDetailPage() {
           )}
         </div>
       </Card>
+
+      <LessonVideoBlock lessonId={lesson.id} canEdit={canEdit} />
+      <LessonMaterialsBlock lessonId={lesson.id} canEdit={canEdit} />
     </div>
   );
 }

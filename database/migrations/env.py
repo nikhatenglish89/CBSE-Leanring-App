@@ -20,6 +20,7 @@ from app.modules.classes import models as classes_models  # noqa: E402,F401
 from app.modules.subjects import models as subjects_models  # noqa: E402,F401
 from app.modules.courses import models as courses_models  # noqa: E402,F401
 from app.modules.lessons import models as lessons_models  # noqa: E402,F401
+from app.modules.materials import models as materials_models  # noqa: E402,F401
 
 config = context.config
 if config.config_file_name is not None:
