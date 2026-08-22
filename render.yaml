@@ -30,10 +30,11 @@ services:
         value: https://nikhatenglish89.github.io/CBSE-Leanring-App/
       # In-app "EduSphere Guide" chat widget (app.core.llm). Without an API
       # key it stays up and answers with a static fallback message instead
-      # of failing — set LLM_API_KEY in the Render dashboard to go live.
+      # of failing — get a free Gemini key at aistudio.google.com and set
+      # LLM_API_KEY in the Render dashboard to go live.
       - key: LLM_PROVIDER
-        value: anthropic
+        value: gemini
       - key: LLM_MODEL
-        value: claude-sonnet-5
+        value: gemini-2.0-flash
       - key: LLM_API_KEY
         sync: false

@@ -28,9 +28,10 @@ class Settings(BaseSettings):
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""
 
-    LLM_PROVIDER: str = "anthropic"
+    # "gemini" (free tier via aistudio.google.com) or "anthropic".
+    LLM_PROVIDER: str = "gemini"
     LLM_API_KEY: str = ""
-    LLM_MODEL: str = "claude-sonnet-5"
+    LLM_MODEL: str = "gemini-2.0-flash"
 
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
