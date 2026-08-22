@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     # "gemini" (free tier via aistudio.google.com) or "anthropic".
     LLM_PROVIDER: str = "gemini"
     LLM_API_KEY: str = ""
-    LLM_MODEL: str = "gemini-2.0-flash"
+    LLM_MODEL: str = "gemini-3.6-flash"
 
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
