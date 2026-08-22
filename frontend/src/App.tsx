@@ -5,6 +5,9 @@ import { Layout } from "./components/layout/Layout";
 import { ToastProvider } from "./components/ui";
 import { queryClient } from "./lib/queryClient";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
+import { AdminUserDetailPage } from "./pages/admin/AdminUserDetailPage";
+import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
+import { ForcePasswordResetPage } from "./pages/ForcePasswordResetPage";
 import { HomePage } from "./pages/HomePage";
 import { LessonDetailPage } from "./pages/LessonDetailPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -35,6 +38,14 @@ export function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
+            <Route
+              path="/force-password-reset"
+              element={
+                <ProtectedRoute skipPasswordResetCheck>
+                  <ForcePasswordResetPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/profile"
               element={
@@ -138,6 +149,22 @@ export function App() {
               element={
                 <ProtectedRoute allow={["ADMIN", "SUPER_ADMIN", "CONTENT_MANAGER", "SUPPORT_AGENT"]}>
                   <AdminDashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users"
+              element={
+                <ProtectedRoute allow={["ADMIN", "SUPER_ADMIN", "SUPPORT_AGENT"]}>
+                  <AdminUsersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/users/:userId"
+              element={
+                <ProtectedRoute allow={["ADMIN", "SUPER_ADMIN", "SUPPORT_AGENT"]}>
+                  <AdminUserDetailPage />
                 </ProtectedRoute>
               }
             />

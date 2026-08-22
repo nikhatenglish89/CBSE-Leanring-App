@@ -1,4 +1,5 @@
 import { type FormEvent, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { PageHeader } from "../../components/layout/PageHeader";
 import { StudyLinksCard } from "../../components/StudyLinksCard";
@@ -51,6 +52,20 @@ export function AdminDashboardPage() {
       />
 
       <StudyLinksCard />
+
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Students &amp; Teachers</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Review accounts and create new ones with a temporary password.
+            </p>
+          </div>
+          <Link to="/admin/users">
+            <Button variant="secondary">Manage users →</Button>
+          </Link>
+        </div>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>

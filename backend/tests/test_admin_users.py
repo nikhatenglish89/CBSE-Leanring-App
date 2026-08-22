@@ -1,0 +1,199 @@
+from app.core.security import hash_password
+from app.modules.auth import repository as auth_repo
+from app.modules.users import repository as users_repo
+from tests.conftest import TestingSessionLocal
+from tests.test_curriculum import _auth_headers, _get_seeded_class_and_subject
+
+
+def _create_admin(email="admin.users@example.com", password="AdminPass123"):
+    db = TestingSessionLocal()
+    try:
+        role = auth_repo.get_role_by_name(db, "ADMIN")
+        users_repo.create_user(
+            db,
+            email=email,
+            password_hash=hash_password(password),
+            full_name="Admin User",
+            phone=None,
+            role_id=role.id,
+        )
+    finally:
+        db.close()
+
+
+def _admin_headers(client, email="admin.users@example.com", password="AdminPass123"):
+    _create_admin(email, password)
+    tokens = client.post("/api/v1/auth/login", json={"email": email, "password": password}).json()["data"]
+    return {"Authorization": f"Bearer {tokens['access_token']}"}
+
+
+def test_admin_can_create_student_account(client):
+    headers = _admin_headers(client, email="admin.create.student@example.com")
+    resp = client.post(
+        "/api/v1/users",
+        json={"email": "new.student@example.com", "full_name": "New Student", "role": "STUDENT"},
+        headers=headers,
+    )
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    assert data["email"] == "new.student@example.com"
+    assert data["role"] == "STUDENT"
+    assert data["must_reset_password"] is True
+    assert len(data["temporary_password"]) >= 8
+
+
+def test_admin_can_create_teacher_account(client):
+    headers = _admin_headers(client, email="admin.create.teacher@example.com")
+    resp = client.post(
+        "/api/v1/users",
+        json={"email": "new.teacher@example.com", "full_name": "New Teacher", "role": "TEACHER"},
+        headers=headers,
+    )
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    assert data["role"] == "TEACHER"
+    assert data["must_reset_password"] is True
+
+
+def test_create_user_duplicate_email_conflicts(client):
+    headers = _admin_headers(client, email="admin.create.dup@example.com")
+    client.post(
+        "/api/v1/users",
+        json={"email": "dup.user@example.com", "full_name": "Dup", "role": "STUDENT"},
+        headers=headers,
+    )
+    resp = client.post(
+        "/api/v1/users",
+        json={"email": "dup.user@example.com", "full_name": "Dup Again", "role": "STUDENT"},
+        headers=headers,
+    )
+    assert resp.status_code == 409
+    assert resp.json()["error"]["code"] == "EMAIL_ALREADY_REGISTERED"
+
+
+def test_non_admin_cannot_create_user(client):
+    headers = _auth_headers(client, "student.no.create@example.com", "STUDENT")
+    resp = client.post(
+        "/api/v1/users",
+        json={"email": "sneaky@example.com", "full_name": "Sneaky", "role": "STUDENT"},
+        headers=headers,
+    )
+    assert resp.status_code == 403
+    assert resp.json()["error"]["code"] == "PERMISSION_DENIED"
+
+
+def test_create_user_requires_auth(client):
+    resp = client.post(
+        "/api/v1/users", json={"email": "noauth@example.com", "full_name": "No Auth", "role": "STUDENT"}
+    )
+    assert resp.status_code == 401
+
+
+def test_admin_created_account_must_reset_password_then_login_normally(client):
+    headers = _admin_headers(client, email="admin.reset.flow@example.com")
+    created = client.post(
+        "/api/v1/users",
+        json={"email": "resetflow.student@example.com", "full_name": "Reset Flow", "role": "STUDENT"},
+        headers=headers,
+    ).json()["data"]
+    temp_password = created["temporary_password"]
+
+    login = client.post(
+        "/api/v1/auth/login", json={"email": "resetflow.student@example.com", "password": temp_password}
+    )
+    assert login.status_code == 200
+    student_headers = {"Authorization": f"Bearer {login.json()['data']['access_token']}"}
+
+    me = client.get("/api/v1/users/me", headers=student_headers).json()["data"]
+    assert me["must_reset_password"] is True
+
+    change = client.post(
+        "/api/v1/auth/change-password",
+        json={"current_password": temp_password, "new_password": "BrandNewPass456"},
+        headers=student_headers,
+    )
+    assert change.status_code == 200
+
+    me_after = client.get("/api/v1/users/me", headers=student_headers).json()["data"]
+    assert me_after["must_reset_password"] is False
+
+    # old temp password no longer works, new one does
+    old_login = client.post(
+        "/api/v1/auth/login", json={"email": "resetflow.student@example.com", "password": temp_password}
+    )
+    assert old_login.status_code == 401
+    new_login = client.post(
+        "/api/v1/auth/login", json={"email": "resetflow.student@example.com", "password": "BrandNewPass456"}
+    )
+    assert new_login.status_code == 200
+
+
+def test_admin_can_list_and_filter_users_by_role(client):
+    headers = _admin_headers(client, email="admin.list@example.com")
+    _auth_headers(client, "listed.student@example.com", "STUDENT")
+    _auth_headers(client, "listed.teacher@example.com", "TEACHER")
+
+    students = client.get("/api/v1/users", params={"role": "STUDENT"}, headers=headers).json()["data"]
+    assert any(u["email"] == "listed.student@example.com" for u in students)
+    assert all(u["role"] == "STUDENT" for u in students)
+
+    teachers = client.get("/api/v1/users", params={"role": "TEACHER"}, headers=headers).json()["data"]
+    assert any(u["email"] == "listed.teacher@example.com" for u in teachers)
+    assert all(u["role"] == "TEACHER" for u in teachers)
+
+
+def test_admin_can_search_users(client):
+    headers = _admin_headers(client, email="admin.search@example.com")
+    _auth_headers(client, "findme.search@example.com", "STUDENT")
+
+    resp = client.get("/api/v1/users", params={"search": "findme"}, headers=headers)
+    assert resp.status_code == 200
+    assert any(u["email"] == "findme.search@example.com" for u in resp.json()["data"])
+
+
+def test_admin_can_view_student_detail(client):
+    headers = _admin_headers(client, email="admin.detail.student@example.com")
+    student_headers = _auth_headers(client, "detail.student@example.com", "STUDENT")
+    student_id = client.get("/api/v1/users/me", headers=student_headers).json()["data"]["id"]
+
+    resp = client.get(f"/api/v1/users/{student_id}", headers=headers)
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["role"] == "STUDENT"
+    assert "current_class_id" in data
+    assert "date_of_birth" in data
+
+
+def test_admin_can_view_teacher_detail_with_course_count(client):
+    headers = _admin_headers(client, email="admin.detail.teacher@example.com")
+    teacher_headers = _auth_headers(client, "detail.teacher@example.com", "TEACHER")
+    teacher_id = client.get("/api/v1/users/me", headers=teacher_headers).json()["data"]["id"]
+
+    class_id, subject_id = _get_seeded_class_and_subject(client, teacher_headers)
+    client.post(
+        "/api/v1/courses",
+        json={"class_id": class_id, "subject_id": subject_id, "title": "Detail Course"},
+        headers=teacher_headers,
+    )
+
+    resp = client.get(f"/api/v1/users/{teacher_id}", headers=headers)
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["role"] == "TEACHER"
+    assert data["course_count"] == 1
+    assert data["teacher_verified"] is False
+
+
+def test_non_admin_cannot_view_user_detail(client):
+    a_headers = _auth_headers(client, "peeker.student@example.com", "STUDENT")
+    b_headers = _auth_headers(client, "target.student@example.com", "STUDENT")
+    target_id = client.get("/api/v1/users/me", headers=b_headers).json()["data"]["id"]
+
+    resp = client.get(f"/api/v1/users/{target_id}", headers=a_headers)
+    assert resp.status_code == 403
+
+
+def test_get_user_detail_not_found(client):
+    headers = _admin_headers(client, email="admin.notfound@example.com")
+    resp = client.get("/api/v1/users/00000000-0000-0000-0000-000000000000", headers=headers)
+    assert resp.status_code == 404

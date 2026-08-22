@@ -29,6 +29,10 @@ class User(UUIDPKMixin, TimestampMixin, Base):
     role_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("roles.id"))
     status: Mapped[str] = mapped_column(String(20), default="ACTIVE")
     email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    # Set on accounts an admin creates (with a system-generated temporary
+    # password); cleared the moment the user successfully changes their
+    # password. Self-registered accounts never have this set.
+    password_reset_required: Mapped[bool] = mapped_column(Boolean, default=False)
 
     role: Mapped["Role"] = relationship(lazy="joined")
 

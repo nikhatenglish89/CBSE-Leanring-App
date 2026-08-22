@@ -8,6 +8,7 @@ export interface User {
   status: string;
   role: UserRole;
   email_verified: boolean;
+  must_reset_password: boolean;
   created_at: string;
 }
 

@@ -12,6 +12,7 @@ from app.modules.auth.models import Permission, Role, RolePermission
 # small for Phase 2 — grows as later phases add resources).
 DEFAULT_PERMISSIONS: list[tuple[str, str]] = [
     ("user:view", "View other users' accounts"),
+    ("user:create", "Create new Student/Teacher accounts"),
     ("user:update", "Update other users' accounts"),
     ("user:delete", "Delete/deactivate user accounts"),
     ("course:create", "Create courses"),

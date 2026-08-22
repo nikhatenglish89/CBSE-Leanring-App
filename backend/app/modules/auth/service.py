@@ -162,6 +162,7 @@ def change_password(db: Session, user: User, payload: ChangePasswordRequest) -> 
         raise AppError("CURRENT_PASSWORD_INCORRECT", "Current password is incorrect.", 400)
 
     user.password_hash = hash_password(payload.new_password)
+    user.password_reset_required = False
     db.commit()
     # Force every other logged-in session to re-authenticate with the new
     # password; the caller's own session keeps working off its still-valid
