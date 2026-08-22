@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { LessonMaterialsBlock } from "../components/lesson/LessonMaterialsBlock";
+import { LessonQABlock } from "../components/lesson/LessonQABlock";
 import { LessonVideoBlock } from "../components/lesson/LessonVideoBlock";
 import { Badge, Button, Card, CardSkeleton, Textarea, useToast } from "../components/ui";
 import { useAuth } from "../hooks/useAuth";
@@ -32,6 +33,7 @@ export function LessonDetailPage() {
   }, [lesson]);
 
   const canEdit = Boolean(user && CAN_EDIT_ROLES.includes(user.role));
+  const canAsk = Boolean(user && (user.role === "STUDENT" || user.role === "PARENT"));
 
   const onSave = async () => {
     if (!lessonId) return;
@@ -109,6 +111,7 @@ export function LessonDetailPage() {
 
       <LessonVideoBlock lessonId={lesson.id} canEdit={canEdit} />
       <LessonMaterialsBlock lessonId={lesson.id} canEdit={canEdit} />
+      <LessonQABlock lessonId={lesson.id} canAsk={canAsk} canAnswer={canEdit} />
     </div>
   );
 }
