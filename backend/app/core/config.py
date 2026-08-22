@@ -28,8 +28,9 @@ class Settings(BaseSettings):
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""
 
-    LLM_PROVIDER: str = ""
+    LLM_PROVIDER: str = "anthropic"
     LLM_API_KEY: str = ""
+    LLM_MODEL: str = "claude-sonnet-5"
 
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587

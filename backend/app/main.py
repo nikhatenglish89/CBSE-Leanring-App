@@ -11,6 +11,7 @@ from app.core.exceptions import (
     unhandled_exception_handler,
     validation_exception_handler,
 )
+from app.modules.assistant.router import router as assistant_router
 from app.modules.auth.router import router as auth_router
 from app.modules.classes.router import router as classes_router
 from app.modules.courses.router import router as courses_router
@@ -49,6 +50,7 @@ def create_app() -> FastAPI:
     app.include_router(materials_router)
     app.include_router(practice_router)
     app.include_router(interaction_router)
+    app.include_router(assistant_router)
 
     @app.get("/health")
     def health() -> dict:
