@@ -31,12 +31,16 @@ def _generate_temporary_password() -> str:
     return "".join(secrets.choice(_PASSWORD_ALPHABET) for _ in range(12))
 
 
-def admin_create_user(db: Session, payload: AdminCreateUserRequest) -> tuple[User, str]:
-    """Creates a Student or Teacher account with a random temporary
-    password; the account is forced to change it on first login (enforced
-    client-side by must_reset_password, and re-checked by change_password
-    clearing the flag). Returns the plaintext password once — it is never
-    retrievable again after this call."""
+def admin_create_user(db: Session, current_user: User, payload: AdminCreateUserRequest) -> tuple[User, str]:
+    """Creates a Student, Teacher, or (Super Admin only) Admin account with
+    a random temporary password; the account is forced to change it on
+    first login (enforced client-side by must_reset_password, and
+    re-checked by change_password clearing the flag). Returns the
+    plaintext password once — it is never retrievable again after this
+    call."""
+    if payload.role == "ADMIN" and current_user.role.name != "SUPER_ADMIN":
+        raise AppError("PERMISSION_DENIED", "Only Super Admins can create Admin accounts.", 403)
+
     if users_repo.get_user_by_email(db, payload.email) is not None:
         raise AppError("EMAIL_ALREADY_REGISTERED", "An account with this email already exists.", 409)
 

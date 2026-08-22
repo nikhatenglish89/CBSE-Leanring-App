@@ -2,6 +2,14 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { Badge, Card, CardSkeleton } from "../../components/ui";
 import { useAdminUserDetail } from "../../hooks/useAdminUsers";
+import type { UserRole } from "../../types/users";
+
+const ROLE_LABEL: Partial<Record<UserRole, string>> = {
+  STUDENT: "Student",
+  TEACHER: "Teacher",
+  ADMIN: "Admin",
+  SUPER_ADMIN: "Super Admin",
+};
 
 export function AdminUserDetailPage() {
   const { userId } = useParams<{ userId: string }>();
@@ -28,7 +36,7 @@ export function AdminUserDetailPage() {
 
       <Card className="flex flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge tone="brand">{detail.role === "STUDENT" ? "Student" : "Teacher"}</Badge>
+          <Badge tone="brand">{ROLE_LABEL[detail.role] ?? detail.role}</Badge>
           <Badge tone={detail.status === "ACTIVE" ? "success" : "neutral"}>{detail.status}</Badge>
           {detail.email_verified ? (
             <Badge tone="success">Email verified</Badge>

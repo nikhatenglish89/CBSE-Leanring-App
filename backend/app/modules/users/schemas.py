@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.modules.users.models import User
 
-AdminCreatableRole = Literal["STUDENT", "TEACHER"]
+AdminCreatableRole = Literal["STUDENT", "TEACHER", "ADMIN"]
 
 
 class UserOut(BaseModel):

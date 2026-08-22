@@ -7,18 +7,33 @@ import { z } from "zod";
 import { PageHeader } from "../../components/layout/PageHeader";
 import { Badge, Button, Card, CardSkeleton, EmptyState, Input, Select, useToast } from "../../components/ui";
 import { useAdminUsers, useCreateUser } from "../../hooks/useAdminUsers";
+import { useAuth } from "../../hooks/useAuth";
 import type { AdminCreatableRole, AdminCreatedUserOut } from "../../types/users";
+
+const ROLE_LABEL: Record<AdminCreatableRole, string> = {
+  STUDENT: "Student",
+  TEACHER: "Teacher",
+  ADMIN: "Admin",
+};
 
 const createUserSchema = z.object({
   email: z.string().email("Enter a valid email address"),
   full_name: z.string().min(1, "Full name is required"),
   phone: z.string().optional(),
-  role: z.enum(["STUDENT", "TEACHER"]),
+  role: z.enum(["STUDENT", "TEACHER", "ADMIN"]),
 });
 
 type CreateUserFormValues = z.infer<typeof createUserSchema>;
 
-function CreateUserForm({ defaultRole, onDone }: { defaultRole: AdminCreatableRole; onDone: (created: AdminCreatedUserOut) => void }) {
+function CreateUserForm({
+  defaultRole,
+  allowAdmin,
+  onDone,
+}: {
+  defaultRole: AdminCreatableRole;
+  allowAdmin: boolean;
+  onDone: (created: AdminCreatedUserOut) => void;
+}) {
   const createUser = useCreateUser();
   const { showToast } = useToast();
   const {
@@ -51,6 +66,7 @@ function CreateUserForm({ defaultRole, onDone }: { defaultRole: AdminCreatableRo
         <Select label="Role" {...register("role")}>
           <option value="STUDENT">Student</option>
           <option value="TEACHER">Teacher</option>
+          {allowAdmin && <option value="ADMIN">Admin</option>}
         </Select>
         <Input label="Full name" error={errors.full_name?.message} {...register("full_name")} />
         <Input label="Email" type="email" error={errors.email?.message} {...register("email")} />
@@ -105,6 +121,10 @@ function CreatedAccountPanel({ created, onDismiss }: { created: AdminCreatedUser
 }
 
 export function AdminUsersPage() {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === "SUPER_ADMIN";
+  const roleTabs: AdminCreatableRole[] = isSuperAdmin ? ["STUDENT", "TEACHER", "ADMIN"] : ["STUDENT", "TEACHER"];
+
   const [roleTab, setRoleTab] = useState<AdminCreatableRole>("STUDENT");
   const [search, setSearch] = useState("");
   const [creating, setCreating] = useState(false);
@@ -115,13 +135,13 @@ export function AdminUsersPage() {
     <div className="page-shell flex flex-col gap-6 py-10">
       <PageHeader
         eyebrow="Admin"
-        title="Manage Students & Teachers"
+        title={isSuperAdmin ? "Manage Students, Teachers & Admins" : "Manage Students & Teachers"}
         subtitle="Review accounts and create new ones with a temporary password — they'll be required to set their own on first login."
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex rounded-lg border border-slate-200 bg-white p-1">
-          {(["STUDENT", "TEACHER"] as const).map((role) => (
+          {roleTabs.map((role) => (
             <button
               key={role}
               type="button"
@@ -130,12 +150,12 @@ export function AdminUsersPage() {
                 roleTab === role ? "bg-brand-600 text-white" : "text-slate-600 hover:bg-slate-100"
               }`}
             >
-              {role === "STUDENT" ? "Students" : "Teachers"}
+              {ROLE_LABEL[role]}s
             </button>
           ))}
         </div>
         {!creating && !createdAccount && (
-          <Button onClick={() => setCreating(true)}>Create {roleTab === "STUDENT" ? "student" : "teacher"} account</Button>
+          <Button onClick={() => setCreating(true)}>Create {ROLE_LABEL[roleTab].toLowerCase()} account</Button>
         )}
       </div>
 
@@ -146,6 +166,7 @@ export function AdminUsersPage() {
       {creating && !createdAccount && (
         <CreateUserForm
           defaultRole={roleTab}
+          allowAdmin={isSuperAdmin}
           onDone={(created) => {
             setCreating(false);
             setCreatedAccount(created);
@@ -189,7 +210,7 @@ export function AdminUsersPage() {
       {!isLoading && users?.length === 0 && (
         <EmptyState
           icon="👤"
-          title={`No ${roleTab === "STUDENT" ? "students" : "teachers"} found`}
+          title={`No ${ROLE_LABEL[roleTab].toLowerCase()}s found`}
           description={search ? "Try a different search." : "Create the first account above."}
         />
       )}

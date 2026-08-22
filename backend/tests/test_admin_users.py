@@ -5,10 +5,10 @@ from tests.conftest import TestingSessionLocal
 from tests.test_curriculum import _auth_headers, _get_seeded_class_and_subject
 
 
-def _create_admin(email="admin.users@example.com", password="AdminPass123"):
+def _create_admin(email="admin.users@example.com", password="AdminPass123", role_name="ADMIN"):
     db = TestingSessionLocal()
     try:
-        role = auth_repo.get_role_by_name(db, "ADMIN")
+        role = auth_repo.get_role_by_name(db, role_name)
         users_repo.create_user(
             db,
             email=email,
@@ -22,7 +22,13 @@ def _create_admin(email="admin.users@example.com", password="AdminPass123"):
 
 
 def _admin_headers(client, email="admin.users@example.com", password="AdminPass123"):
-    _create_admin(email, password)
+    _create_admin(email, password, role_name="ADMIN")
+    tokens = client.post("/api/v1/auth/login", json={"email": email, "password": password}).json()["data"]
+    return {"Authorization": f"Bearer {tokens['access_token']}"}
+
+
+def _super_admin_headers(client, email="superadmin.users@example.com", password="SuperAdminPass123"):
+    _create_admin(email, password, role_name="SUPER_ADMIN")
     tokens = client.post("/api/v1/auth/login", json={"email": email, "password": password}).json()["data"]
     return {"Authorization": f"Bearer {tokens['access_token']}"}
 
@@ -197,3 +203,83 @@ def test_get_user_detail_not_found(client):
     headers = _admin_headers(client, email="admin.notfound@example.com")
     resp = client.get("/api/v1/users/00000000-0000-0000-0000-000000000000", headers=headers)
     assert resp.status_code == 404
+
+
+def test_super_admin_can_create_admin_account(client):
+    headers = _super_admin_headers(client, email="superadmin.create.admin@example.com")
+    resp = client.post(
+        "/api/v1/users",
+        json={"email": "new.admin@example.com", "full_name": "New Admin", "role": "ADMIN"},
+        headers=headers,
+    )
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    assert data["role"] == "ADMIN"
+    assert data["must_reset_password"] is True
+    assert len(data["temporary_password"]) >= 8
+
+
+def test_regular_admin_cannot_create_admin_account(client):
+    headers = _admin_headers(client, email="admin.no.escalate@example.com")
+    resp = client.post(
+        "/api/v1/users",
+        json={"email": "blocked.admin@example.com", "full_name": "Blocked Admin", "role": "ADMIN"},
+        headers=headers,
+    )
+    assert resp.status_code == 403
+    assert resp.json()["error"]["code"] == "PERMISSION_DENIED"
+
+
+def test_super_admin_can_still_create_student_and_teacher(client):
+    headers = _super_admin_headers(client, email="superadmin.create.rest@example.com")
+    student_resp = client.post(
+        "/api/v1/users",
+        json={"email": "sa.student@example.com", "full_name": "SA Student", "role": "STUDENT"},
+        headers=headers,
+    )
+    assert student_resp.status_code == 201
+    teacher_resp = client.post(
+        "/api/v1/users",
+        json={"email": "sa.teacher@example.com", "full_name": "SA Teacher", "role": "TEACHER"},
+        headers=headers,
+    )
+    assert teacher_resp.status_code == 201
+
+
+def test_admin_created_admin_account_must_reset_password(client):
+    headers = _super_admin_headers(client, email="superadmin.reset.flow@example.com")
+    created = client.post(
+        "/api/v1/users",
+        json={"email": "resetflow.admin@example.com", "full_name": "Reset Flow Admin", "role": "ADMIN"},
+        headers=headers,
+    ).json()["data"]
+    temp_password = created["temporary_password"]
+
+    login = client.post(
+        "/api/v1/auth/login", json={"email": "resetflow.admin@example.com", "password": temp_password}
+    )
+    assert login.status_code == 200
+    admin_headers = {"Authorization": f"Bearer {login.json()['data']['access_token']}"}
+
+    me = client.get("/api/v1/users/me", headers=admin_headers).json()["data"]
+    assert me["must_reset_password"] is True
+
+    # the newly created admin can itself create student/teacher accounts,
+    # but not another admin until it resets its own password? -- no such
+    # restriction exists; only role determines this, not reset status.
+    change = client.post(
+        "/api/v1/auth/change-password",
+        headers=admin_headers,
+        json={"current_password": temp_password, "new_password": "BrandNewAdminPass456"},
+    )
+    assert change.status_code == 200
+
+
+def test_list_users_filters_by_admin_role(client):
+    headers = _super_admin_headers(client, email="superadmin.list.admins@example.com")
+    _create_admin(email="listed.admin@example.com", role_name="ADMIN")
+
+    resp = client.get("/api/v1/users", params={"role": "ADMIN"}, headers=headers)
+    assert resp.status_code == 200
+    assert any(u["email"] == "listed.admin@example.com" for u in resp.json()["data"])
+    assert all(u["role"] == "ADMIN" for u in resp.json()["data"])

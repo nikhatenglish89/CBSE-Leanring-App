@@ -9,6 +9,7 @@ from app.dependencies.auth import CurrentUser, require_permission
 from app.dependencies.pagination import PaginationParams, get_pagination_params
 from app.modules.users import repository as users_repo
 from app.modules.users import service as users_service
+from app.modules.users.models import User
 from app.modules.users.schemas import (
     AdminCreatedUserOut,
     AdminCreateUserRequest,
@@ -50,9 +51,13 @@ def list_users(
     return success(data, meta={"page": pagination.page, "page_size": pagination.page_size, "total": total})
 
 
-@router.post("", status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_permission("user:create"))])
-def create_user(payload: AdminCreateUserRequest, db: Annotated[Session, Depends(get_db)]) -> dict:
-    user, temporary_password = users_service.admin_create_user(db, payload)
+@router.post("", status_code=status.HTTP_201_CREATED)
+def create_user(
+    payload: AdminCreateUserRequest,
+    current_user: Annotated[User, Depends(require_permission("user:create"))],
+    db: Annotated[Session, Depends(get_db)],
+) -> dict:
+    user, temporary_password = users_service.admin_create_user(db, current_user, payload)
     data = AdminCreatedUserOut.from_user_and_password(user, temporary_password).model_dump(mode="json")
     return success(data)
 

@@ -1,6 +1,6 @@
 import type { User, UserRole } from "./auth";
 
-export type AdminCreatableRole = "STUDENT" | "TEACHER";
+export type AdminCreatableRole = "STUDENT" | "TEACHER" | "ADMIN";
 
 export interface AdminCreateUserPayload {
   email: string;
