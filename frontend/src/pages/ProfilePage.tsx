@@ -29,8 +29,21 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
+const passwordSchema = z
+  .object({
+    current_password: z.string().min(1, "Current password is required"),
+    new_password: z.string().min(8, "New password must be at least 8 characters"),
+    confirm_password: z.string().min(1, "Please confirm your new password"),
+  })
+  .refine((values) => values.new_password === values.confirm_password, {
+    message: "Passwords do not match",
+    path: ["confirm_password"],
+  });
+
+type PasswordFormValues = z.infer<typeof passwordSchema>;
+
 export function ProfilePage() {
-  const { user, updateProfile, isUpdatingProfile } = useAuth();
+  const { user, updateProfile, isUpdatingProfile, changePassword, isChangingPassword } = useAuth();
   const { showToast } = useToast();
   const {
     register,
@@ -41,6 +54,13 @@ export function ProfilePage() {
     resolver: zodResolver(schema),
     defaultValues: { full_name: user?.full_name ?? "", phone: user?.phone ?? "" },
   });
+
+  const {
+    register: registerPassword,
+    handleSubmit: handlePasswordSubmit,
+    reset: resetPasswordForm,
+    formState: { errors: passwordErrors },
+  } = useForm<PasswordFormValues>({ resolver: zodResolver(passwordSchema) });
 
   useEffect(() => {
     reset({ full_name: user?.full_name ?? "", phone: user?.phone ?? "" });
@@ -56,6 +76,19 @@ export function ProfilePage() {
       showToast("Your profile has been updated.", "success");
     } catch {
       showToast("Could not update your profile. Please try again.", "error");
+    }
+  };
+
+  const onChangePassword = async (values: PasswordFormValues) => {
+    try {
+      await changePassword({
+        current_password: values.current_password,
+        new_password: values.new_password,
+      });
+      resetPasswordForm();
+      showToast("Your password has been changed.", "success");
+    } catch {
+      showToast("Could not change your password — check your current password and try again.", "error");
     }
   };
 
@@ -106,6 +139,45 @@ export function ProfilePage() {
             <div className="flex justify-end">
               <Button type="submit" isLoading={isUpdatingProfile} disabled={!isDirty}>
                 Save changes
+              </Button>
+            </div>
+          </form>
+        </Card>
+
+        <Card className="lg:col-span-2 lg:col-start-2">
+          <h2 className="mb-1 text-lg font-semibold text-slate-900">Change password</h2>
+          <p className="mb-4 text-sm text-slate-500">
+            Changing your password will sign you out of your other devices.
+          </p>
+          <form
+            className="flex flex-col gap-4"
+            onSubmit={handlePasswordSubmit(onChangePassword)}
+            noValidate
+          >
+            <Input
+              label="Current password"
+              type="password"
+              autoComplete="current-password"
+              error={passwordErrors.current_password?.message}
+              {...registerPassword("current_password")}
+            />
+            <Input
+              label="New password"
+              type="password"
+              autoComplete="new-password"
+              error={passwordErrors.new_password?.message}
+              {...registerPassword("new_password")}
+            />
+            <Input
+              label="Confirm new password"
+              type="password"
+              autoComplete="new-password"
+              error={passwordErrors.confirm_password?.message}
+              {...registerPassword("confirm_password")}
+            />
+            <div className="flex justify-end">
+              <Button type="submit" isLoading={isChangingPassword}>
+                Update password
               </Button>
             </div>
           </form>

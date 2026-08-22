@@ -16,7 +16,7 @@ from app.core.security import (
 )
 from app.models.base import utcnow
 from app.modules.auth import repository as auth_repo
-from app.modules.auth.schemas import RegisterRequest, TokenPair
+from app.modules.auth.schemas import ChangePasswordRequest, RegisterRequest, TokenPair
 from app.modules.users import repository as users_repo
 from app.modules.users.models import User
 
@@ -155,6 +155,18 @@ def refresh(db: Session, refresh_token: str) -> TokenPair:
     # Rotate: revoke the used refresh token, issue a fresh pair.
     auth_repo.revoke_refresh_token(db, record)
     return _issue_token_pair(db, user)
+
+
+def change_password(db: Session, user: User, payload: ChangePasswordRequest) -> None:
+    if not verify_password(payload.current_password, user.password_hash):
+        raise AppError("CURRENT_PASSWORD_INCORRECT", "Current password is incorrect.", 400)
+
+    user.password_hash = hash_password(payload.new_password)
+    db.commit()
+    # Force every other logged-in session to re-authenticate with the new
+    # password; the caller's own session keeps working off its still-valid
+    # access token.
+    auth_repo.revoke_all_refresh_tokens_for_user(db, user.id)
 
 
 def logout(db: Session, refresh_token: str) -> None:

@@ -7,6 +7,7 @@ from app.core.database import get_db
 from app.dependencies.auth import CurrentUser
 from app.modules.auth import service as auth_service
 from app.modules.auth.schemas import (
+    ChangePasswordRequest,
     LoginRequest,
     LogoutRequest,
     RefreshRequest,
@@ -58,3 +59,11 @@ def verify_email(payload: VerifyEmailRequest, db: Annotated[Session, Depends(get
 def resend_verification(current_user: CurrentUser, db: Annotated[Session, Depends(get_db)]) -> dict:
     auth_service.resend_verification_email(db, current_user)
     return success({"sent": True})
+
+
+@router.post("/change-password")
+def change_password(
+    payload: ChangePasswordRequest, current_user: CurrentUser, db: Annotated[Session, Depends(get_db)]
+) -> dict:
+    auth_service.change_password(db, current_user, payload)
+    return success({"changed": True})

@@ -141,3 +141,79 @@ def test_resend_verification_then_blocked_once_verified(client):
 def test_resend_verification_requires_auth(client):
     resp = client.post("/api/v1/auth/resend-verification")
     assert resp.status_code == 401
+
+
+def test_change_password_success_and_relogin(client):
+    _register(client, email="ivan@example.com", password="StrongPass123")
+    tokens = _login(client, email="ivan@example.com").json()["data"]
+    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+
+    resp = client.post(
+        "/api/v1/auth/change-password",
+        json={"current_password": "StrongPass123", "new_password": "EvenStronger456"},
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["data"]["changed"] is True
+
+    # Old password no longer works, new one does.
+    old_login = _login(client, email="ivan@example.com", password="StrongPass123")
+    assert old_login.status_code == 401
+
+    new_login = _login(client, email="ivan@example.com", password="EvenStronger456")
+    assert new_login.status_code == 200
+
+
+def test_change_password_wrong_current_password(client):
+    _register(client, email="judy@example.com", password="StrongPass123")
+    tokens = _login(client, email="judy@example.com").json()["data"]
+    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+
+    resp = client.post(
+        "/api/v1/auth/change-password",
+        json={"current_password": "wrong-password", "new_password": "EvenStronger456"},
+        headers=headers,
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "CURRENT_PASSWORD_INCORRECT"
+
+    # Original password still works — nothing was changed.
+    still_works = _login(client, email="judy@example.com", password="StrongPass123")
+    assert still_works.status_code == 200
+
+
+def test_change_password_revokes_other_refresh_tokens(client):
+    _register(client, email="kyle@example.com", password="StrongPass123")
+    tokens = _login(client, email="kyle@example.com").json()["data"]
+    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+
+    client.post(
+        "/api/v1/auth/change-password",
+        json={"current_password": "StrongPass123", "new_password": "EvenStronger456"},
+        headers=headers,
+    )
+
+    # The refresh token issued before the password change is now revoked.
+    resp = client.post("/api/v1/auth/refresh", json={"refresh_token": tokens["refresh_token"]})
+    assert resp.status_code == 401
+
+
+def test_change_password_requires_auth(client):
+    resp = client.post(
+        "/api/v1/auth/change-password",
+        json={"current_password": "a", "new_password": "EvenStronger456"},
+    )
+    assert resp.status_code == 401
+
+
+def test_change_password_rejects_short_new_password(client):
+    _register(client, email="laura@example.com", password="StrongPass123")
+    tokens = _login(client, email="laura@example.com").json()["data"]
+    headers = {"Authorization": f"Bearer {tokens['access_token']}"}
+
+    resp = client.post(
+        "/api/v1/auth/change-password",
+        json={"current_password": "StrongPass123", "new_password": "short"},
+        headers=headers,
+    )
+    assert resp.status_code == 422

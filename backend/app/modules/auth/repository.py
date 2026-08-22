@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.modules.auth.models import Permission, RefreshToken, Role, RolePermission
@@ -40,4 +40,15 @@ def get_refresh_token_by_jti(db: Session, jti: str) -> RefreshToken | None:
 
 def revoke_refresh_token(db: Session, record: RefreshToken) -> None:
     record.revoked = True
+    db.commit()
+
+
+def revoke_all_refresh_tokens_for_user(db: Session, user_id: uuid.UUID) -> None:
+    """Used on password change so other logged-in sessions are forced to
+    re-authenticate with the new password."""
+    db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user_id, RefreshToken.revoked.is_(False))
+        .values(revoked=True)
+    )
     db.commit()

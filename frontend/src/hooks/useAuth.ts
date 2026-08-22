@@ -19,6 +19,11 @@ interface UpdateProfilePayload {
   phone?: string | null;
 }
 
+interface ChangePasswordPayload {
+  current_password: string;
+  new_password: string;
+}
+
 async function fetchMe(): Promise<User> {
   const { data } = await api.get<ApiSuccess<User>>("/users/me");
   return data.data;
@@ -57,6 +62,12 @@ export function useAuth() {
     },
   });
 
+  const changePasswordMutation = useMutation({
+    mutationFn: async (payload: ChangePasswordPayload): Promise<void> => {
+      await api.post("/auth/change-password", payload);
+    },
+  });
+
   const resendVerificationMutation = useMutation({
     mutationFn: async (): Promise<void> => {
       await api.post("/auth/resend-verification");
@@ -86,6 +97,8 @@ export function useAuth() {
     updateProfile: updateProfileMutation.mutateAsync,
     isUpdatingProfile: updateProfileMutation.isPending,
     updateProfileError: updateProfileMutation.error,
+    changePassword: changePasswordMutation.mutateAsync,
+    isChangingPassword: changePasswordMutation.isPending,
     resendVerification: resendVerificationMutation.mutateAsync,
     isResendingVerification: resendVerificationMutation.isPending,
     logout,
