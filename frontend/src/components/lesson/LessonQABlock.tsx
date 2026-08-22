@@ -33,7 +33,7 @@ export function LessonQABlock({
     );
   }
 
-  if ((questions?.length ?? 0) === 0 && !canAsk) return null;
+  if ((questions?.length ?? 0) === 0 && !canAsk && !canAnswer) return null;
 
   const onAsk = async () => {
     if (!draftQuestion.trim()) return;
