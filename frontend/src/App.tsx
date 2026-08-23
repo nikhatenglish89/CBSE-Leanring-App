@@ -1,8 +1,10 @@
 import { QueryClientProvider } from "@tanstack/react-query";
+import type { ReactNode } from "react";
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom";
 
 import { Layout } from "./components/layout/Layout";
-import { ToastProvider } from "./components/ui";
+import { Spinner, ToastProvider } from "./components/ui";
+import { useAuthBootstrap } from "./hooks/useAuthBootstrap";
 import { queryClient } from "./lib/queryClient";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { AdminUserDetailPage } from "./pages/admin/AdminUserDetailPage";
@@ -27,10 +29,23 @@ import { TeacherInteractionPage } from "./pages/TeacherInteractionPage";
 import { VerifyEmailPage } from "./pages/VerifyEmailPage";
 import { ProtectedRoute } from "./routes/ProtectedRoute";
 
+function AuthGate({ children }: { children: ReactNode }) {
+  const isReady = useAuthBootstrap();
+  if (!isReady) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <Spinner label="Loading EduSphere" className="text-base" />
+      </div>
+    );
+  }
+  return <>{children}</>;
+}
+
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
+        <AuthGate>
         <Router basename={import.meta.env.BASE_URL}>
           <Layout>
           <Routes>
@@ -172,6 +187,7 @@ export function App() {
           </Routes>
           </Layout>
         </Router>
+        </AuthGate>
       </ToastProvider>
     </QueryClientProvider>
   );
