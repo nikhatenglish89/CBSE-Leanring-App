@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 
-import { Badge, Card, CardSkeleton } from "../../components/ui";
-import { useAdminUserDetail } from "../../hooks/useAdminUsers";
+import { Badge, Button, Card, CardSkeleton, useToast } from "../../components/ui";
+import { useAdminUserDetail, useUnverifyUser, useVerifyUser } from "../../hooks/useAdminUsers";
 import type { UserRole } from "../../types/users";
 
 const ROLE_LABEL: Partial<Record<UserRole, string>> = {
@@ -11,10 +11,15 @@ const ROLE_LABEL: Partial<Record<UserRole, string>> = {
   SUPER_ADMIN: "Super Admin",
 };
 
+const APPROVAL_ROLES: UserRole[] = ["STUDENT", "TEACHER"];
+
 export function AdminUserDetailPage() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const { data: detail, isLoading } = useAdminUserDetail(userId);
+  const verifyUser = useVerifyUser();
+  const unverifyUser = useUnverifyUser();
+  const { showToast } = useToast();
 
   if (isLoading || !detail) {
     return (
@@ -23,6 +28,24 @@ export function AdminUserDetailPage() {
       </div>
     );
   }
+
+  const onVerify = async () => {
+    try {
+      await verifyUser.mutateAsync(detail.id);
+      showToast("Account verified.", "success");
+    } catch {
+      showToast("Could not verify this account.", "error");
+    }
+  };
+
+  const onUnverify = async () => {
+    try {
+      await unverifyUser.mutateAsync(detail.id);
+      showToast("Verification revoked.", "success");
+    } catch {
+      showToast("Could not update this account.", "error");
+    }
+  };
 
   return (
     <div className="page-shell mx-auto flex max-w-2xl flex-col gap-6 py-10">
@@ -50,6 +73,33 @@ export function AdminUserDetailPage() {
         {detail.phone && <p className="text-sm text-slate-500">{detail.phone}</p>}
       </Card>
 
+      {APPROVAL_ROLES.includes(detail.role) && (
+        <Card className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Account approval</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                {detail.role === "TEACHER"
+                  ? "A teacher can only publish courses once their account is verified."
+                  : "An unverified student only sees free published content — verify to unlock paid content too."}
+              </p>
+            </div>
+            <Badge tone={detail.is_verified ? "success" : "warning"}>
+              {detail.is_verified ? "Verified" : "Pending approval"}
+            </Badge>
+          </div>
+          {detail.is_verified ? (
+            <Button variant="secondary" onClick={onUnverify} isLoading={unverifyUser.isPending} className="w-fit">
+              Revoke verification
+            </Button>
+          ) : (
+            <Button onClick={onVerify} isLoading={verifyUser.isPending} className="w-fit">
+              Verify account
+            </Button>
+          )}
+        </Card>
+      )}
+
       {detail.role === "STUDENT" && (
         <Card className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold text-slate-900">Student profile</h2>
@@ -70,10 +120,6 @@ export function AdminUserDetailPage() {
         <Card className="flex flex-col gap-3">
           <h2 className="text-lg font-semibold text-slate-900">Teacher profile</h2>
           <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-slate-500">Verified</p>
-              <p className="font-medium text-slate-800">{detail.teacher_verified ? "Yes" : "No"}</p>
-            </div>
             <div>
               <p className="text-slate-500">Courses created</p>
               <p className="font-medium text-slate-800">{detail.course_count ?? 0}</p>

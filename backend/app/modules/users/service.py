@@ -83,6 +83,7 @@ def get_user_detail(db: Session, user_id: uuid.UUID) -> dict:
         detail["current_class_id"] = profile.current_class_id if profile else None
         detail["current_class_name"] = klass.name if klass else None
         detail["date_of_birth"] = profile.date_of_birth if profile else None
+        detail["student_verified"] = profile.verified if profile else None
     elif user.role.name == "TEACHER":
         profile = users_repo.get_teacher_profile_by_user_id(db, user.id)
         detail["bio"] = profile.bio if profile else None
@@ -92,3 +93,36 @@ def get_user_detail(db: Session, user_id: uuid.UUID) -> dict:
             detail["course_count"] = count
 
     return detail
+
+
+def get_verification_status(db: Session, user: User) -> bool:
+    """Admin-approval status for a user's own role. Always True for roles
+    the approval gate doesn't apply to (staff, parent)."""
+    if user.role.name == "TEACHER":
+        profile = users_repo.get_teacher_profile_by_user_id(db, user.id)
+        return bool(profile and profile.verified)
+    if user.role.name == "STUDENT":
+        profile = users_repo.get_student_profile_by_user_id(db, user.id)
+        return bool(profile and profile.verified)
+    return True
+
+
+def set_user_verified(db: Session, user_id: uuid.UUID, verified: bool) -> User:
+    user = users_repo.get_user_by_id(db, user_id)
+    if user is None:
+        raise AppError("USER_NOT_FOUND", "User not found.", 404)
+
+    if user.role.name == "TEACHER":
+        profile = users_repo.get_teacher_profile_by_user_id(db, user.id)
+        if profile is None:
+            raise AppError("PROFILE_NOT_FOUND", "No teacher profile found for this account.", 400)
+        users_repo.set_teacher_verified(db, profile, verified)
+    elif user.role.name == "STUDENT":
+        profile = users_repo.get_student_profile_by_user_id(db, user.id)
+        if profile is None:
+            raise AppError("PROFILE_NOT_FOUND", "No student profile found for this account.", 400)
+        users_repo.set_student_verified(db, profile, verified)
+    else:
+        raise AppError("INVALID_ROLE", "Only Student and Teacher accounts can be verified.", 400)
+
+    return user

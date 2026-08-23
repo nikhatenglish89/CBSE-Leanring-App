@@ -70,12 +70,15 @@ def create_course(db: Session, user: User, payload: CourseCreateRequest) -> Cour
     )
 
 
+def _student_can_see_paid_content(db: Session, user: User) -> bool:
+    profile = users_repo.get_student_profile_by_user_id(db, user.id)
+    return bool(profile and profile.verified)
+
+
 def get_course_for_view(db: Session, user: User, course_id: uuid.UUID) -> Course:
     course = courses_repo.get_course_by_id(db, course_id)
     if course is None:
         raise AppError("COURSE_NOT_FOUND", "Course not found.", 404)
-    if course.status == "PUBLISHED":
-        return course
     # Draft courses are visible to staff and to any teacher (so a teacher
     # can see what colleagues are building, e.g. via the Study Materials/
     # Videos browse pages, even before they publish) - but not to students
@@ -83,7 +86,14 @@ def get_course_for_view(db: Session, user: User, course_id: uuid.UUID) -> Course
     # learners.
     if _is_staff(user) or user.role.name == "TEACHER":
         return course
-    raise AppError("COURSE_NOT_FOUND", "Course not found.", 404)
+    if course.status != "PUBLISHED":
+        raise AppError("COURSE_NOT_FOUND", "Course not found.", 404)
+    # An unverified student only ever sees FREE published content — PAID
+    # content is treated as not existing for them until an admin approves
+    # their account, same 404-not-403 leak-avoidance as the draft case.
+    if user.role.name == "STUDENT" and course.access_type == "PAID" and not _student_can_see_paid_content(db, user):
+        raise AppError("COURSE_NOT_FOUND", "Course not found.", 404)
+    return course
 
 
 def list_courses(
@@ -104,7 +114,12 @@ def list_courses(
             db, offset, limit, class_id=class_id, subject_id=subject_id, teacher_id=profile.id
         )
     status = None if _is_staff(user) else "PUBLISHED"
-    return courses_repo.list_courses(db, offset, limit, status=status, class_id=class_id, subject_id=subject_id)
+    access_type = None
+    if user.role.name == "STUDENT" and not _student_can_see_paid_content(db, user):
+        access_type = "FREE"
+    return courses_repo.list_courses(
+        db, offset, limit, status=status, access_type=access_type, class_id=class_id, subject_id=subject_id
+    )
 
 
 def update_course(db: Session, user: User, course_id: uuid.UUID, payload: CourseUpdateRequest) -> Course:
@@ -112,6 +127,14 @@ def update_course(db: Session, user: User, course_id: uuid.UUID, payload: Course
     if course is None:
         raise AppError("COURSE_NOT_FOUND", "Course not found.", 404)
     assert_can_manage_course(db, user, course)
+    if payload.status == "PUBLISHED" and not _is_staff(user):
+        profile = users_repo.get_teacher_profile_by_user_id(db, user.id)
+        if profile is None or not profile.verified:
+            raise AppError(
+                "ACCOUNT_NOT_VERIFIED",
+                "Your account must be verified by an admin before you can publish courses.",
+                403,
+            )
     return courses_repo.update_course(
         db,
         course,

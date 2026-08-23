@@ -1,4 +1,9 @@
-from tests.test_curriculum import _auth_headers, _get_seeded_class_and_subject
+from tests.test_curriculum import (
+    _auth_headers,
+    _get_seeded_class_and_subject,
+    _verify_student_for_headers,
+    _verify_teacher_for_headers,
+)
 
 
 def _create_published_lesson(client, headers):
@@ -14,6 +19,7 @@ def _create_published_lesson(client, headers):
     lesson = client.post(
         f"/api/v1/sections/{section['id']}/lessons", json={"title": "Lesson 1"}, headers=headers
     ).json()["data"]
+    _verify_teacher_for_headers(client, headers)
     client.patch(f"/api/v1/courses/{course['id']}", json={"status": "PUBLISHED"}, headers=headers)
     return lesson
 
@@ -170,6 +176,7 @@ def test_browse_materials_and_videos_only_shows_published_courses(client):
     pub_lesson = client.post(
         f"/api/v1/sections/{pub_section['id']}/lessons", json={"title": "Browsable Lesson"}, headers=headers
     ).json()["data"]
+    _verify_teacher_for_headers(client, headers)
     client.patch(f"/api/v1/courses/{published['id']}", json={"status": "PUBLISHED"}, headers=headers)
     client.post(
         f"/api/v1/lessons/{pub_lesson['id']}/materials",
@@ -256,3 +263,47 @@ def test_browse_shows_drafts_to_other_teachers_but_not_students(client):
     resp = client.get("/api/v1/materials", headers=student_headers)
     names = [m["file_name"] for m in resp.json()["data"]]
     assert "colleague-notes.pdf" not in names
+
+
+def test_unverified_student_only_browses_free_materials_and_videos(client):
+    owner_headers = _auth_headers(client, "teacher.paidmaterials@example.com", "TEACHER")
+    class_id, subject_id = _get_seeded_class_and_subject(client, owner_headers)
+    course = client.post(
+        "/api/v1/courses",
+        json={
+            "class_id": class_id, "subject_id": subject_id, "title": "Paid Materials Course",
+            "access_type": "PAID",
+        },
+        headers=owner_headers,
+    ).json()["data"]
+    section = client.post(
+        f"/api/v1/courses/{course['id']}/sections", json={"title": "Section 1"}, headers=owner_headers
+    ).json()["data"]
+    lesson = client.post(
+        f"/api/v1/sections/{section['id']}/lessons", json={"title": "Paid Lesson"}, headers=owner_headers
+    ).json()["data"]
+    client.post(
+        f"/api/v1/lessons/{lesson['id']}/materials",
+        headers=owner_headers,
+        files={"file": ("paid-notes.pdf", b"%PDF-1.4 paid", "application/pdf")},
+    )
+    client.put(
+        f"/api/v1/lessons/{lesson['id']}/video",
+        headers=owner_headers,
+        json={"url": "https://www.youtube.com/watch?v=paid123", "title": "Paid video"},
+    )
+    _verify_teacher_for_headers(client, owner_headers)
+    client.patch(f"/api/v1/courses/{course['id']}", json={"status": "PUBLISHED"}, headers=owner_headers)
+
+    unverified_headers = _auth_headers(client, "student.paidbrowse.unverified@example.com", "STUDENT")
+    mat_names = [m["file_name"] for m in client.get("/api/v1/materials", headers=unverified_headers).json()["data"]]
+    assert "paid-notes.pdf" not in mat_names
+    vid_titles = [v["title"] for v in client.get("/api/v1/videos", headers=unverified_headers).json()["data"]]
+    assert "Paid video" not in vid_titles
+
+    verified_headers = _auth_headers(client, "student.paidbrowse.verified@example.com", "STUDENT")
+    _verify_student_for_headers(client, verified_headers)
+    mat_names = [m["file_name"] for m in client.get("/api/v1/materials", headers=verified_headers).json()["data"]]
+    assert "paid-notes.pdf" in mat_names
+    vid_titles = [v["title"] for v in client.get("/api/v1/videos", headers=verified_headers).json()["data"]]
+    assert "Paid video" in vid_titles

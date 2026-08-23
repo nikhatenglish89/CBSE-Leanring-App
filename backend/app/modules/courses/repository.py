@@ -13,6 +13,7 @@ def list_courses(
     limit: int,
     *,
     status: str | None = None,
+    access_type: str | None = None,
     class_id: uuid.UUID | None = None,
     subject_id: uuid.UUID | None = None,
     teacher_id: uuid.UUID | None = None,
@@ -20,6 +21,8 @@ def list_courses(
     stmt = select(Course).where(Course.deleted_at.is_(None))
     if status is not None:
         stmt = stmt.where(Course.status == status)
+    if access_type is not None:
+        stmt = stmt.where(Course.access_type == access_type)
     if class_id is not None:
         stmt = stmt.where(Course.class_id == class_id)
     if subject_id is not None:

@@ -19,6 +19,7 @@ export interface UserDetailOut extends User {
   date_of_birth: string | null;
   bio: string | null;
   teacher_verified: boolean | null;
+  student_verified: boolean | null;
   course_count: number | null;
 }
 

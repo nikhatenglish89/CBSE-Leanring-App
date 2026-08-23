@@ -79,6 +79,20 @@ def get_student_profile_by_user_id(db: Session, user_id: uuid.UUID) -> StudentPr
     return db.scalar(select(StudentProfile).where(StudentProfile.user_id == user_id))
 
 
+def set_teacher_verified(db: Session, profile: TeacherProfile, verified: bool) -> TeacherProfile:
+    profile.verified = verified
+    db.commit()
+    db.refresh(profile)
+    return profile
+
+
+def set_student_verified(db: Session, profile: StudentProfile, verified: bool) -> StudentProfile:
+    profile.verified = verified
+    db.commit()
+    db.refresh(profile)
+    return profile
+
+
 def clear_password_reset_required(db: Session, user: User) -> User:
     user.password_reset_required = False
     db.commit()

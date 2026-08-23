@@ -63,12 +63,17 @@ def browse_questions(
     mine: bool = False,
 ):
     include_drafts = user.role.name not in _LEARNER_ROLES
+    only_free = False
+    if user.role.name == "STUDENT":
+        profile = users_repo.get_student_profile_by_user_id(db, user.id)
+        only_free = not (profile and profile.verified)
     student_id = user.id if mine else None
     return interaction_repo.browse_questions(
         db,
         offset,
         limit,
         include_drafts=include_drafts,
+        only_free=only_free,
         class_id=class_id,
         subject_id=subject_id,
         answered=answered,

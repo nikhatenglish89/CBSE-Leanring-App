@@ -198,6 +198,11 @@ export function AdminUsersPage() {
                   <p className="text-xs text-slate-500">{u.email}</p>
                 </div>
                 <div className="flex items-center gap-2">
+                  {(u.role === "STUDENT" || u.role === "TEACHER") && (
+                    <Badge tone={u.is_verified ? "success" : "warning"}>
+                      {u.is_verified ? "Verified" : "Pending approval"}
+                    </Badge>
+                  )}
                   {u.must_reset_password && <Badge tone="warning">Password reset pending</Badge>}
                   <Badge tone={u.status === "ACTIVE" ? "success" : "neutral"}>{u.status}</Badge>
                 </div>

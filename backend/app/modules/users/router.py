@@ -23,8 +23,10 @@ router = APIRouter(prefix="/api/v1/users", tags=["users"])
 
 
 @router.get("/me")
-def get_me(current_user: CurrentUser) -> dict:
-    return success(UserOut.from_user(current_user).model_dump(mode="json"))
+def get_me(current_user: CurrentUser, db: Annotated[Session, Depends(get_db)]) -> dict:
+    is_verified = users_service.get_verification_status(db, current_user)
+    data = UserOut.from_user(current_user, is_verified=is_verified).model_dump(mode="json")
+    return success(data)
 
 
 @router.patch("/me")
@@ -34,7 +36,9 @@ def patch_me(
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
     updated = users_service.update_me(db, current_user, payload)
-    return success(UserOut.from_user(updated).model_dump(mode="json"))
+    is_verified = users_service.get_verification_status(db, updated)
+    data = UserOut.from_user(updated, is_verified=is_verified).model_dump(mode="json")
+    return success(data)
 
 
 @router.get("", dependencies=[Depends(require_permission("user:view"))])
@@ -47,7 +51,10 @@ def list_users(
     items, total = users_repo.list_users(
         db, pagination.offset, pagination.page_size, role=role, search=search
     )
-    data = [UserOut.from_user(u).model_dump(mode="json") for u in items]
+    data = [
+        UserOut.from_user(u, is_verified=users_service.get_verification_status(db, u)).model_dump(mode="json")
+        for u in items
+    ]
     return success(data, meta={"page": pagination.page, "page_size": pagination.page_size, "total": total})
 
 
@@ -65,13 +72,29 @@ def create_user(
 @router.get("/{user_id}", dependencies=[Depends(require_permission("user:view"))])
 def get_user(user_id: uuid.UUID, db: Annotated[Session, Depends(get_db)]) -> dict:
     detail = users_service.get_user_detail(db, user_id)
+    is_verified = users_service.get_verification_status(db, detail["user"])
     data = UserDetailOut(
-        **UserOut.from_user(detail["user"]).model_dump(),
+        **UserOut.from_user(detail["user"], is_verified=is_verified).model_dump(),
         current_class_id=detail.get("current_class_id"),
         current_class_name=detail.get("current_class_name"),
         date_of_birth=detail.get("date_of_birth"),
         bio=detail.get("bio"),
         teacher_verified=detail.get("teacher_verified"),
+        student_verified=detail.get("student_verified"),
         course_count=detail.get("course_count"),
     ).model_dump(mode="json")
+    return success(data)
+
+
+@router.post("/{user_id}/verify", dependencies=[Depends(require_permission("user:update"))])
+def verify_user(user_id: uuid.UUID, db: Annotated[Session, Depends(get_db)]) -> dict:
+    user = users_service.set_user_verified(db, user_id, True)
+    data = UserOut.from_user(user, is_verified=True).model_dump(mode="json")
+    return success(data)
+
+
+@router.post("/{user_id}/unverify", dependencies=[Depends(require_permission("user:update"))])
+def unverify_user(user_id: uuid.UUID, db: Annotated[Session, Depends(get_db)]) -> dict:
+    user = users_service.set_user_verified(db, user_id, False)
+    data = UserOut.from_user(user, is_verified=False).model_dump(mode="json")
     return success(data)

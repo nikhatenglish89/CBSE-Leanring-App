@@ -20,10 +20,15 @@ class UserOut(BaseModel):
     role: str
     email_verified: bool
     must_reset_password: bool
+    # Admin-approval status (Student/Teacher only — always True for other
+    # roles, since the approval gate doesn't apply to them). Gates whether
+    # a teacher can publish a course and whether a student sees PAID
+    # published content, not whether the account can log in.
+    is_verified: bool
     created_at: datetime
 
     @classmethod
-    def from_user(cls, user: User) -> "UserOut":
+    def from_user(cls, user: User, *, is_verified: bool) -> "UserOut":
         # `role` is a relationship (Role), not a plain column, so it needs
         # its own mapping rather than relying on from_attributes to coerce it.
         return cls(
@@ -35,6 +40,7 @@ class UserOut(BaseModel):
             role=user.role.name,
             email_verified=user.email_verified_at is not None,
             must_reset_password=user.password_reset_required,
+            is_verified=is_verified,
             created_at=user.created_at,
         )
 
@@ -59,7 +65,9 @@ class AdminCreatedUserOut(UserOut):
 
     @classmethod
     def from_user_and_password(cls, user: User, temporary_password: str) -> "AdminCreatedUserOut":
-        base = UserOut.from_user(user)
+        # A brand-new account is never pre-verified — Student/Teacher
+        # accounts always start out needing admin approval.
+        base = UserOut.from_user(user, is_verified=False)
         return cls(**base.model_dump(), temporary_password=temporary_password)
 
 
@@ -71,4 +79,5 @@ class UserDetailOut(UserOut):
     date_of_birth: date | None = None
     bio: str | None = None
     teacher_verified: bool | None = None
+    student_verified: bool | None = None
     course_count: int | None = None

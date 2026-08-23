@@ -11,6 +11,7 @@ from app.modules.lessons import repository as lessons_repo
 from app.modules.materials import repository as materials_repo
 from app.modules.materials.models import LessonMaterial, Video
 from app.modules.materials.schemas import VideoSetRequest
+from app.modules.users import repository as users_repo
 from app.modules.users.models import User
 
 # Kept small on purpose — files are stored as bytes in Postgres (see the
@@ -165,13 +166,26 @@ def delete_video(db: Session, user: User, lesson_id: uuid.UUID) -> None:
 _LEARNER_ROLES = {"STUDENT", "PARENT"}
 
 
+def _only_free_for_learner(db: Session, user: User) -> bool:
+    # Only students carry the admin-verification gate — an unverified
+    # student sees FREE published content only, same rule as the course
+    # catalog/detail view. Parents aren't gated (no verification concept
+    # for them yet), matching the scope of the original request.
+    if user.role.name != "STUDENT":
+        return False
+    profile = users_repo.get_student_profile_by_user_id(db, user.id)
+    return not (profile and profile.verified)
+
+
 def browse_materials(
     db: Session, user: User, offset: int, limit: int, *, class_id: uuid.UUID | None = None,
     subject_id: uuid.UUID | None = None,
 ):
     include_drafts = user.role.name not in _LEARNER_ROLES
+    only_free = _only_free_for_learner(db, user)
     return materials_repo.browse_materials(
-        db, offset, limit, include_drafts=include_drafts, class_id=class_id, subject_id=subject_id
+        db, offset, limit, include_drafts=include_drafts, only_free=only_free,
+        class_id=class_id, subject_id=subject_id,
     )
 
 
@@ -180,6 +194,8 @@ def browse_videos(
     subject_id: uuid.UUID | None = None,
 ):
     include_drafts = user.role.name not in _LEARNER_ROLES
+    only_free = _only_free_for_learner(db, user)
     return materials_repo.browse_videos(
-        db, offset, limit, include_drafts=include_drafts, class_id=class_id, subject_id=subject_id
+        db, offset, limit, include_drafts=include_drafts, only_free=only_free,
+        class_id=class_id, subject_id=subject_id,
     )

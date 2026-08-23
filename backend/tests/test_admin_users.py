@@ -283,3 +283,73 @@ def test_list_users_filters_by_admin_role(client):
     assert resp.status_code == 200
     assert any(u["email"] == "listed.admin@example.com" for u in resp.json()["data"])
     assert all(u["role"] == "ADMIN" for u in resp.json()["data"])
+
+
+def test_admin_can_verify_and_unverify_teacher(client):
+    admin_headers = _admin_headers(client, email="admin.verify.teacher@example.com")
+    teacher_headers = _auth_headers(client, "teacher.toverify@example.com", "TEACHER")
+    teacher_id = client.get("/api/v1/users/me", headers=teacher_headers).json()["data"]["id"]
+
+    me_before = client.get("/api/v1/users/me", headers=teacher_headers).json()["data"]
+    assert me_before["is_verified"] is False
+
+    verify_resp = client.post(f"/api/v1/users/{teacher_id}/verify", headers=admin_headers)
+    assert verify_resp.status_code == 200
+    assert verify_resp.json()["data"]["is_verified"] is True
+
+    me_after = client.get("/api/v1/users/me", headers=teacher_headers).json()["data"]
+    assert me_after["is_verified"] is True
+
+    detail = client.get(f"/api/v1/users/{teacher_id}", headers=admin_headers).json()["data"]
+    assert detail["teacher_verified"] is True
+
+    unverify_resp = client.post(f"/api/v1/users/{teacher_id}/unverify", headers=admin_headers)
+    assert unverify_resp.status_code == 200
+    assert unverify_resp.json()["data"]["is_verified"] is False
+
+
+def test_admin_can_verify_and_unverify_student(client):
+    admin_headers = _admin_headers(client, email="admin.verify.student@example.com")
+    student_headers = _auth_headers(client, "student.toverify@example.com", "STUDENT")
+    student_id = client.get("/api/v1/users/me", headers=student_headers).json()["data"]["id"]
+
+    verify_resp = client.post(f"/api/v1/users/{student_id}/verify", headers=admin_headers)
+    assert verify_resp.status_code == 200
+    assert verify_resp.json()["data"]["is_verified"] is True
+
+    detail = client.get(f"/api/v1/users/{student_id}", headers=admin_headers).json()["data"]
+    assert detail["student_verified"] is True
+
+    unverify_resp = client.post(f"/api/v1/users/{student_id}/unverify", headers=admin_headers)
+    assert unverify_resp.status_code == 200
+    assert unverify_resp.json()["data"]["is_verified"] is False
+
+
+def test_non_admin_cannot_verify_user(client):
+    student_a = _auth_headers(client, "student.a.noverify@example.com", "STUDENT")
+    student_b_headers = _auth_headers(client, "student.b.noverify@example.com", "STUDENT")
+    student_b_id = client.get("/api/v1/users/me", headers=student_b_headers).json()["data"]["id"]
+
+    resp = client.post(f"/api/v1/users/{student_b_id}/verify", headers=student_a)
+    assert resp.status_code == 403
+
+
+def test_verify_requires_auth(client):
+    resp = client.post("/api/v1/users/00000000-0000-0000-0000-000000000000/verify")
+    assert resp.status_code == 401
+
+
+def test_verify_nonexistent_user_404(client):
+    headers = _admin_headers(client, email="admin.verify.404@example.com")
+    resp = client.post("/api/v1/users/00000000-0000-0000-0000-000000000000/verify", headers=headers)
+    assert resp.status_code == 404
+
+
+def test_verify_rejects_non_student_teacher_role(client):
+    admin_headers = _admin_headers(client, email="admin.verify.badrole@example.com")
+    other_admin_id_headers = _admin_headers(client, email="admin.target.badrole@example.com")
+    other_admin_id = client.get("/api/v1/users/me", headers=other_admin_id_headers).json()["data"]["id"]
+
+    resp = client.post(f"/api/v1/users/{other_admin_id}/verify", headers=admin_headers)
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "INVALID_ROLE"

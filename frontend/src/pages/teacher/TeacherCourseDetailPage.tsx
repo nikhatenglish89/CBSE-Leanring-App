@@ -1,3 +1,4 @@
+import axios from "axios";
 import { type FormEvent, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
@@ -33,8 +34,13 @@ export function TeacherCourseDetailPage() {
         status: course.status === "PUBLISHED" ? "DRAFT" : "PUBLISHED",
       });
       showToast(course.status === "PUBLISHED" ? "Course unpublished." : "Course published.", "success");
-    } catch {
-      showToast("Could not update the course.", "error");
+    } catch (error) {
+      // Surfaces the server's specific reason when it has one (e.g. "Your
+      // account must be verified by an admin before you can publish
+      // courses.") instead of a generic message that would leave the
+      // teacher guessing why.
+      const message = axios.isAxiosError(error) ? error.response?.data?.error?.message : undefined;
+      showToast(message ?? "Could not update the course.", "error");
     }
   };
 

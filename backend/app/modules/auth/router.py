@@ -14,6 +14,7 @@ from app.modules.auth.schemas import (
     RegisterRequest,
     VerifyEmailRequest,
 )
+from app.modules.users import service as users_service
 from app.modules.users.schemas import UserOut
 from app.schemas.envelope import success
 
@@ -28,7 +29,8 @@ def register(
     # Backgrounded so a slow/unreachable mail server never delays the signup
     # response itself — see auth_service.send_verification_email.
     background_tasks.add_task(auth_service.send_verification_email, user)
-    return success(UserOut.from_user(user).model_dump(mode="json"))
+    is_verified = users_service.get_verification_status(db, user)
+    return success(UserOut.from_user(user, is_verified=is_verified).model_dump(mode="json"))
 
 
 @router.post("/login")

@@ -47,6 +47,10 @@ class StudentProfile(UUIDPKMixin, TimestampMixin, Base):
         ForeignKey("parent_profiles.id"), default=None
     )
     date_of_birth: Mapped[date | None] = mapped_column(Date, default=None)
+    # Admin approval gate: an unverified student only ever sees FREE
+    # published content (see courses/materials services) — mirrors
+    # TeacherProfile.verified, which gates whether a teacher can publish.
+    verified: Mapped[bool] = mapped_column(Boolean, default=False)
 
 
 class ParentProfile(UUIDPKMixin, TimestampMixin, Base):

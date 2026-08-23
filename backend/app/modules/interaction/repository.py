@@ -67,6 +67,7 @@ def browse_questions(
     limit: int,
     *,
     include_drafts: bool,
+    only_free: bool = False,
     class_id: uuid.UUID | None = None,
     subject_id: uuid.UUID | None = None,
     answered: bool | None = None,
@@ -88,6 +89,8 @@ def browse_questions(
     )
     if not include_drafts:
         stmt = stmt.where(Course.status == "PUBLISHED")
+    if only_free:
+        stmt = stmt.where(Course.access_type == "FREE")
     if class_id is not None:
         stmt = stmt.where(Course.class_id == class_id)
     if subject_id is not None:

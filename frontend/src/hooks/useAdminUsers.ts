@@ -37,3 +37,25 @@ export function useCreateUser() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-users"] }),
   });
 }
+
+function useSetUserVerified(action: "verify" | "unverify") {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const { data } = await api.post<ApiSuccess<User>>(`/users/${userId}/${action}`);
+      return data.data;
+    },
+    onSuccess: (_data, userId) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-user-detail", userId] });
+    },
+  });
+}
+
+export function useVerifyUser() {
+  return useSetUserVerified("verify");
+}
+
+export function useUnverifyUser() {
+  return useSetUserVerified("unverify");
+}
