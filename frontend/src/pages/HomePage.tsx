@@ -1,9 +1,10 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 
-import { HomeBannerSection } from "../components/home/HomeBannerSection";
+import { HomeBannerHero } from "../components/home/HomeBannerHero";
 import { Badge, Button } from "../components/ui";
 import { BRAND } from "../config/brand";
+import { usePublicBanners } from "../hooks/useBanners";
 
 type Tone = "brand" | "accent" | "violet" | "rose";
 
@@ -115,8 +116,73 @@ function HeroIllustration() {
   );
 }
 
+function DefaultHero() {
+  return (
+    <section className="relative overflow-hidden bg-gradient-to-br from-brand-700 via-brand-600 to-violet-700">
+      <div
+        className="bg-hero-grid absolute inset-0 opacity-40 [background-size:22px_22px]"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-accent-400/30 blur-3xl"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute -left-24 bottom-0 h-80 w-80 rounded-full bg-violet-500/30 blur-3xl"
+        aria-hidden="true"
+      />
+
+      <div className="page-shell relative grid gap-12 py-20 sm:py-28 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+        <div className="flex flex-col items-center gap-6 text-center lg:items-start lg:text-left">
+          <span className="rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium text-brand-50 ring-1 ring-inset ring-white/20">
+            CBSE &middot; Classes VI&ndash;XII
+          </span>
+          <h1 className="max-w-xl text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
+            {BRAND.tagline}
+          </h1>
+          <p className="max-w-xl text-lg text-brand-50/90">
+            {BRAND.name} is a CBSE-focused learning platform &mdash; video lessons, study material,
+            live classes, and practice tests, all in one place.
+          </p>
+          <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+            <Link to="/register">
+              <Button className="w-full !bg-white !text-brand-700 hover:!bg-brand-50 sm:w-auto">
+                Start learning free
+              </Button>
+            </Link>
+            <Link to="/login">
+              <Button
+                variant="ghost"
+                className="w-full !text-white ring-1 ring-inset ring-white/30 hover:!bg-white/10 sm:w-auto"
+              >
+                I already have an account
+              </Button>
+            </Link>
+          </div>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
+            {CLASS_RANGE.map((label) => (
+              <span
+                key={label}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-white ring-1 ring-inset ring-white/20"
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="hidden justify-self-center lg:flex">
+          <HeroIllustration />
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function HomePage() {
   const { hash } = useLocation();
+  const { data: banners } = usePublicBanners();
+  const hasBanners = Boolean(banners && banners.length > 0);
 
   useEffect(() => {
     if (!hash) return;
@@ -126,66 +192,7 @@ export function HomePage() {
 
   return (
     <div>
-      <section className="relative overflow-hidden bg-gradient-to-br from-brand-700 via-brand-600 to-violet-700">
-        <div
-          className="bg-hero-grid absolute inset-0 opacity-40 [background-size:22px_22px]"
-          aria-hidden="true"
-        />
-        <div
-          className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-accent-400/30 blur-3xl"
-          aria-hidden="true"
-        />
-        <div
-          className="pointer-events-none absolute -left-24 bottom-0 h-80 w-80 rounded-full bg-violet-500/30 blur-3xl"
-          aria-hidden="true"
-        />
-
-        <div className="page-shell relative grid gap-12 py-20 sm:py-28 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-          <div className="flex flex-col items-center gap-6 text-center lg:items-start lg:text-left">
-            <span className="rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium text-brand-50 ring-1 ring-inset ring-white/20">
-              CBSE &middot; Classes VI&ndash;XII
-            </span>
-            <h1 className="max-w-xl text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
-              {BRAND.tagline}
-            </h1>
-            <p className="max-w-xl text-lg text-brand-50/90">
-              {BRAND.name} is a CBSE-focused learning platform &mdash; video lessons, study material,
-              live classes, and practice tests, all in one place.
-            </p>
-            <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-              <Link to="/register">
-                <Button className="w-full !bg-white !text-brand-700 hover:!bg-brand-50 sm:w-auto">
-                  Start learning free
-                </Button>
-              </Link>
-              <Link to="/login">
-                <Button
-                  variant="ghost"
-                  className="w-full !text-white ring-1 ring-inset ring-white/30 hover:!bg-white/10 sm:w-auto"
-                >
-                  I already have an account
-                </Button>
-              </Link>
-            </div>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
-              {CLASS_RANGE.map((label) => (
-                <span
-                  key={label}
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-white ring-1 ring-inset ring-white/20"
-                >
-                  {label}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="hidden justify-self-center lg:flex">
-            <HeroIllustration />
-          </div>
-        </div>
-      </section>
-
-      <HomeBannerSection />
+      {hasBanners ? <HomeBannerHero banners={banners!} /> : <DefaultHero />}
 
       <section className="page-shell py-16 sm:py-24">
         <div className="mx-auto max-w-2xl text-center">
