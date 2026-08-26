@@ -15,6 +15,7 @@ from app.models.base import Base  # noqa: E402
 # Import every module's models so they register on Base.metadata before
 # autogenerate compares against the schema.
 from app.modules.auth import models as auth_models  # noqa: E402,F401
+from app.modules.banners import models as banners_models  # noqa: E402,F401
 from app.modules.users import models as users_models  # noqa: E402,F401
 from app.modules.classes import models as classes_models  # noqa: E402,F401
 from app.modules.subjects import models as subjects_models  # noqa: E402,F401

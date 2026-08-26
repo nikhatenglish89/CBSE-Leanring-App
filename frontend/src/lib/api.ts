@@ -35,7 +35,14 @@ api.interceptors.response.use(
     const original = error.config;
     const status = error.response?.status;
     // Silent-refresh-on-401, exactly once per request, per docs/ARCHITECTURE.md §7.
-    if (status === 401 && !original._retried && useAuthStore.getState().refreshToken) {
+    // Must exclude /auth/refresh itself — otherwise a 401 there (an
+    // expired/invalid stored refresh token) re-enters this same handler,
+    // which awaits `refreshInFlight` while that very call is what has to
+    // settle it: a deadlocked promise that never resolves, leaving
+    // useAuthBootstrap's request hanging forever and the whole app stuck
+    // on the loading spinner. A failed refresh should just fail.
+    const isRefreshCall = typeof original.url === "string" && original.url.includes("/auth/refresh");
+    if (status === 401 && !isRefreshCall && !original._retried && useAuthStore.getState().refreshToken) {
       original._retried = true;
       try {
         refreshInFlight ??= refreshAccessToken();
