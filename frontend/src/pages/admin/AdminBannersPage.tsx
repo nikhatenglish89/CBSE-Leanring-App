@@ -125,11 +125,13 @@ export function AdminBannersPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {banners.map((banner) => (
             <Card key={banner.id} className="flex flex-col gap-3">
-              <img
-                src={bannerImageUrl(banner.id)}
-                alt={banner.title}
-                className="h-36 w-full rounded-lg border border-slate-200 object-cover"
-              />
+              <div className="flex h-36 w-full items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                <img
+                  src={bannerImageUrl(banner.id)}
+                  alt={banner.title}
+                  className="h-full w-full object-contain"
+                />
+              </div>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="truncate font-medium text-slate-800">{banner.title}</p>

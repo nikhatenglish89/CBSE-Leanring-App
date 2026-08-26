@@ -15,11 +15,16 @@ export function HomeBannerSection() {
         <div className="flex gap-5 overflow-x-auto pb-2">
           {banners.map((banner) => {
             const image = (
-              <img
-                src={bannerImageUrl(banner.id)}
-                alt={banner.title}
-                className="h-48 w-full rounded-2xl border border-slate-200 object-cover shadow-card sm:h-56"
-              />
+              <div className="flex h-48 w-full items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-card sm:h-56">
+                {/* object-contain (not cover) — a banner's whole image
+                 * must stay visible regardless of its aspect ratio,
+                 * rather than being cropped to fill a fixed box. */}
+                <img
+                  src={bannerImageUrl(banner.id)}
+                  alt={banner.title}
+                  className="h-full w-full object-contain"
+                />
+              </div>
             );
             return (
               <div key={banner.id} className="w-72 shrink-0 sm:w-96">

@@ -48,7 +48,7 @@ export const HOME_FEATURES: {
     title: "Teacher Interaction",
     description: "Ask questions, join live classes, and get doubts cleared directly by real teachers.",
     tone: "violet",
-    comingSoon: true,
+    comingSoon: false,
   },
   {
     id: "practice-tests",
@@ -57,7 +57,7 @@ export const HOME_FEATURES: {
     title: "Practice Tests",
     description: "Chapter and full-syllabus tests with instant scoring to track real progress.",
     tone: "rose",
-    comingSoon: true,
+    comingSoon: false,
   },
 ];
 
