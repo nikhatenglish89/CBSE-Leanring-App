@@ -217,3 +217,73 @@ def test_change_password_rejects_short_new_password(client):
         headers=headers,
     )
     assert resp.status_code == 422
+
+
+def test_forgot_password_existing_and_unknown_email_return_identical_response(client):
+    _register(client, email="mallory@example.com", password="StrongPass123")
+
+    known = client.post("/api/v1/auth/forgot-password", json={"email": "mallory@example.com"})
+    unknown = client.post("/api/v1/auth/forgot-password", json={"email": "nobody-here@example.com"})
+
+    # Deliberately indistinguishable — the endpoint must never reveal
+    # whether an email has an account.
+    assert known.status_code == unknown.status_code == 200
+    assert known.json() == unknown.json() == {"success": True, "data": {"sent": True}}
+
+
+def test_reset_password_with_valid_token_changes_password_and_revokes_sessions(client):
+    from app.core.security import create_password_reset_token
+
+    register_resp = _register(client, email="nathan@example.com", password="StrongPass123")
+    user_id = register_resp.json()["data"]["id"]
+    old_tokens = _login(client, email="nathan@example.com").json()["data"]
+
+    reset_token = create_password_reset_token(user_id)
+    resp = client.post(
+        "/api/v1/auth/reset-password", json={"token": reset_token, "new_password": "BrandNewPass456"}
+    )
+    assert resp.status_code == 200
+    assert resp.json()["data"]["reset"] is True
+
+    # Old password no longer works, new one does.
+    assert _login(client, email="nathan@example.com", password="StrongPass123").status_code == 401
+    new_login = _login(client, email="nathan@example.com", password="BrandNewPass456")
+    assert new_login.status_code == 200
+
+    # Any refresh token issued before the reset is revoked.
+    resp = client.post("/api/v1/auth/refresh", json={"refresh_token": old_tokens["refresh_token"]})
+    assert resp.status_code == 401
+
+
+def test_reset_password_with_invalid_token(client):
+    resp = client.post(
+        "/api/v1/auth/reset-password", json={"token": "not-a-real-token", "new_password": "WhateverPass123"}
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "INVALID_TOKEN"
+
+
+def test_reset_password_rejects_wrong_token_type(client):
+    from app.core.security import create_email_verification_token
+
+    register_resp = _register(client, email="oscar@example.com", password="StrongPass123")
+    user_id = register_resp.json()["data"]["id"]
+
+    # An email-verification token must not double as a password-reset token.
+    wrong_type_token = create_email_verification_token(user_id)
+    resp = client.post(
+        "/api/v1/auth/reset-password", json={"token": wrong_type_token, "new_password": "WhateverPass123"}
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "INVALID_TOKEN"
+
+
+def test_reset_password_rejects_short_new_password(client):
+    from app.core.security import create_password_reset_token
+
+    register_resp = _register(client, email="peggy@example.com", password="StrongPass123")
+    user_id = register_resp.json()["data"]["id"]
+    reset_token = create_password_reset_token(user_id)
+
+    resp = client.post("/api/v1/auth/reset-password", json={"token": reset_token, "new_password": "short"})
+    assert resp.status_code == 422

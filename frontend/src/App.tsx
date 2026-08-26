@@ -11,6 +11,7 @@ import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { AdminUserDetailPage } from "./pages/admin/AdminUserDetailPage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { ForcePasswordResetPage } from "./pages/ForcePasswordResetPage";
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { HomePage } from "./pages/HomePage";
 import { LessonDetailPage } from "./pages/LessonDetailPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -19,6 +20,7 @@ import { PracticeSetPage } from "./pages/PracticeSetPage";
 import { PracticeTestsPage } from "./pages/PracticeTestsPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { RoleDashboardPlaceholder } from "./pages/RoleDashboardPlaceholder";
 import { StudentCourseDetailPage } from "./pages/student/StudentCourseDetailPage";
 import { StudentDashboardPage } from "./pages/student/StudentDashboardPage";
@@ -53,6 +55,8 @@ export function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route
               path="/force-password-reset"

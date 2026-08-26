@@ -9,6 +9,7 @@ from app.core.security import (
     TokenError,
     create_access_token,
     create_email_verification_token,
+    create_password_reset_token,
     create_refresh_token,
     decode_token,
     hash_password,
@@ -167,6 +168,81 @@ def change_password(db: Session, user: User, payload: ChangePasswordRequest) -> 
     # Force every other logged-in session to re-authenticate with the new
     # password; the caller's own session keeps working off its still-valid
     # access token.
+    auth_repo.revoke_all_refresh_tokens_for_user(db, user.id)
+
+
+def send_password_reset_email(user: User) -> bool:
+    """Same shape/contract as send_verification_email — returns whether the
+    email actually went out, so callers can decide whether to surface that."""
+    token = create_password_reset_token(str(user.id))
+    reset_link = f"{settings.FRONTEND_URL.rstrip('/')}/reset-password?token={token}"
+    text_body = (
+        f"Hi {user.full_name},\n\n"
+        "We received a request to reset your EduSphere CBSE password. Open this link to choose a new one:\n"
+        f"{reset_link}\n\n"
+        "This link expires in 1 hour. If you didn't request this, you can safely ignore this email — "
+        "your password will not be changed."
+    )
+    html_body = f"""
+    <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+      <h2 style="color: #1558e0;">Reset your EduSphere CBSE password</h2>
+      <p>Hi {user.full_name},</p>
+      <p>We received a request to reset your password. Click below to choose a new one.</p>
+      <p style="margin: 24px 0;">
+        <a href="{reset_link}"
+           style="background: #1a6ff5; color: #fff; padding: 12px 24px; border-radius: 8px;
+                  text-decoration: none; font-weight: 600;">
+          Reset my password
+        </a>
+      </p>
+      <p style="color: #64748b; font-size: 13px;">
+        This link expires in 1 hour. If you didn't request this, you can safely ignore this email —
+        your password will not be changed.
+      </p>
+    </div>
+    """
+    try:
+        send_email(user.email, "Reset your EduSphere CBSE password", html_body, text_body)
+        return True
+    except Exception as exc:  # noqa: BLE001 - reported to the caller, not raised
+        print(f"[email:send-failed] to={user.email} error={exc}")
+        return False
+
+
+def find_user_for_password_reset(db: Session, email: str) -> User | None:
+    """Looks up the account synchronously (DB work must happen before the
+    response, unlike the email send itself — see the register()/router
+    background-task pattern). Returns None for a missing or inactive
+    account so the router can skip queuing an email, without the caller
+    ever finding out which case it was — the API response is identical
+    either way, so a stranger can't use this endpoint to discover which
+    emails have accounts."""
+    user = users_repo.get_user_by_email(db, email)
+    if user is None or user.status != "ACTIVE":
+        return None
+    return user
+
+
+def reset_password(db: Session, token: str, new_password: str) -> None:
+    try:
+        payload = decode_token(token, expected_type="password_reset")
+    except TokenError as exc:
+        raise AppError("INVALID_TOKEN", "This reset link is invalid or expired.", 400) from exc
+
+    try:
+        user_id = uuid.UUID(payload["sub"])
+    except (KeyError, ValueError) as exc:
+        raise AppError("INVALID_TOKEN", "This reset link is invalid or expired.", 400) from exc
+
+    user = users_repo.get_user_by_id(db, user_id)
+    if user is None or user.status != "ACTIVE":
+        raise AppError("INVALID_TOKEN", "This reset link is invalid or expired.", 400)
+
+    user.password_hash = hash_password(new_password)
+    user.password_reset_required = False
+    db.commit()
+    # Same defensive move as change_password: kick out any session an
+    # attacker with the old (now-changed) password might already hold.
     auth_repo.revoke_all_refresh_tokens_for_user(db, user.id)
 
 

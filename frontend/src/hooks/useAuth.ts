@@ -24,6 +24,11 @@ interface ChangePasswordPayload {
   new_password: string;
 }
 
+interface ResetPasswordPayload {
+  token: string;
+  new_password: string;
+}
+
 async function fetchMe(): Promise<User> {
   const { data } = await api.get<ApiSuccess<User>>("/users/me");
   return data.data;
@@ -74,6 +79,18 @@ export function useAuth() {
     },
   });
 
+  const forgotPasswordMutation = useMutation({
+    mutationFn: async (email: string): Promise<void> => {
+      await api.post("/auth/forgot-password", { email });
+    },
+  });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (payload: ResetPasswordPayload): Promise<void> => {
+      await api.post("/auth/reset-password", payload);
+    },
+  });
+
   const logout = () => {
     const refreshToken = useAuthStore.getState().refreshToken;
     if (refreshToken) {
@@ -101,6 +118,10 @@ export function useAuth() {
     isChangingPassword: changePasswordMutation.isPending,
     resendVerification: resendVerificationMutation.mutateAsync,
     isResendingVerification: resendVerificationMutation.isPending,
+    forgotPassword: forgotPasswordMutation.mutateAsync,
+    isSendingResetLink: forgotPasswordMutation.isPending,
+    resetPassword: resetPasswordMutation.mutateAsync,
+    isResettingPassword: resetPasswordMutation.isPending,
     logout,
   };
 }

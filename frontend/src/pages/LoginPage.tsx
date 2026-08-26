@@ -62,6 +62,9 @@ export function LoginPage() {
           error={errors.password?.message}
           {...register("password")}
         />
+        <Link to="/forgot-password" className="-mt-2 self-end text-sm font-medium text-brand-600 hover:underline">
+          Forgot password?
+        </Link>
         <Button type="submit" isLoading={isLoggingIn} className="mt-2 w-full">
           Log in
         </Button>

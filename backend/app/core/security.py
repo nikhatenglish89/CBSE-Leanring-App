@@ -49,6 +49,13 @@ def create_email_verification_token(user_id: str) -> str:
     return token
 
 
+def create_password_reset_token(user_id: str) -> str:
+    # Shorter-lived than email verification — a leaked reset link is a more
+    # immediate account-takeover risk than a leaked verify-email link.
+    token, _, _ = _create_token(user_id, "password_reset", timedelta(hours=1))
+    return token
+
+
 class TokenError(Exception):
     pass
 
