@@ -133,7 +133,11 @@ function Hero({ primaryBanner }: { primaryBanner?: Banner }) {
         aria-hidden="true"
       />
 
-      <div className="page-shell relative grid gap-12 py-20 sm:py-28 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+      <div
+        className={`page-shell relative grid gap-12 py-20 sm:py-28 lg:items-center ${
+          primaryBanner ? "lg:grid-cols-[0.7fr_1.3fr]" : "lg:grid-cols-[1.1fr_0.9fr]"
+        }`}
+      >
         <div className="flex flex-col items-center gap-6 text-center lg:items-start lg:text-left">
           <span className="rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium text-brand-50 ring-1 ring-inset ring-white/20">
             CBSE &middot; Classes VI&ndash;XII
@@ -175,7 +179,7 @@ function Hero({ primaryBanner }: { primaryBanner?: Banner }) {
         <div
           className={
             primaryBanner
-              ? "flex justify-center lg:justify-self-center"
+              ? "flex w-full justify-center lg:justify-self-stretch"
               : "hidden justify-self-center lg:flex"
           }
         >

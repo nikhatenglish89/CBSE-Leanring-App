@@ -28,7 +28,7 @@ function BannerImage({ banner, className }: { banner: Banner; className: string 
 /** Sits in the hero's illustration slot (right column, next to the
  * "Learn Smarter..." copy) — the single highest-priority banner. */
 export function HeroBannerImage({ banner }: { banner: Banner }) {
-  return <BannerImage banner={banner} className="max-w-xl" />;
+  return <BannerImage banner={banner} className="" />;
 }
 
 /** Any banners beyond the first render here, in a row directly below the
