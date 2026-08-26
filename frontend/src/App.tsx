@@ -15,6 +15,7 @@ import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { HomePage } from "./pages/HomePage";
 import { LessonDetailPage } from "./pages/LessonDetailPage";
 import { LoginPage } from "./pages/LoginPage";
+import { MessagesPage } from "./pages/MessagesPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { PracticeSetPage } from "./pages/PracticeSetPage";
 import { PracticeTestsPage } from "./pages/PracticeTestsPage";
@@ -103,6 +104,14 @@ export function App() {
               element={
                 <ProtectedRoute>
                   <TeacherInteractionPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/messages"
+              element={
+                <ProtectedRoute allow={["STUDENT", "TEACHER"]}>
+                  <MessagesPage />
                 </ProtectedRoute>
               }
             />

@@ -23,6 +23,7 @@ DEFAULT_PERMISSIONS: list[tuple[str, str]] = [
     ("subject:manage", "Create/update/delete subjects"),
     ("chapter:manage", "Create/update/delete chapters"),
     ("banner:manage", "Upload/update/delete home page banners"),
+    ("message:moderate", "View any student-teacher conversation for safety oversight"),
     ("test:create", "Create tests"),
     ("test:update", "Update tests"),
     ("test:publish", "Publish tests"),

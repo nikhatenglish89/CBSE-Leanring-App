@@ -25,6 +25,10 @@ const FEATURE_NAV_LINKS = [
   { label: "Practice Tests", to: "/practice-tests" },
 ];
 
+// Only shown to signed-in Students/Teachers — messaging always needs a
+// counterpart of the other role, so it's meaningless for anyone else.
+const MESSAGING_ROLES = new Set<UserRole>(["STUDENT", "TEACHER"]);
+
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
   const first = parts[0]?.[0] ?? "";
@@ -79,6 +83,14 @@ export function Header() {
                   {link.label}
                 </Link>
               ))}
+              {MESSAGING_ROLES.has(user.role) && (
+                <Link
+                  to="/messages"
+                  className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                >
+                  Messages
+                </Link>
+              )}
             </nav>
 
             <div className="hidden items-center gap-3 md:flex">
@@ -169,6 +181,15 @@ export function Header() {
               {link.label}
             </Link>
           ))}
+          {MESSAGING_ROLES.has(user.role) && (
+            <Link
+              to="/messages"
+              className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+              onClick={() => setMenuOpen(false)}
+            >
+              Messages
+            </Link>
+          )}
           <Link
             to="/profile"
             className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
