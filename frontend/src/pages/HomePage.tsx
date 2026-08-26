@@ -1,10 +1,11 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 
-import { HomeBannerHero } from "../components/home/HomeBannerHero";
+import { HeroBannerImage, SecondaryBannerStrip } from "../components/home/HomeBanners";
 import { Badge, Button } from "../components/ui";
 import { BRAND } from "../config/brand";
 import { usePublicBanners } from "../hooks/useBanners";
+import type { Banner } from "../types/banners";
 
 type Tone = "brand" | "accent" | "violet" | "rose";
 
@@ -116,7 +117,7 @@ function HeroIllustration() {
   );
 }
 
-function DefaultHero() {
+function Hero({ primaryBanner }: { primaryBanner?: Banner }) {
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-brand-700 via-brand-600 to-violet-700">
       <div
@@ -171,8 +172,14 @@ function DefaultHero() {
           </div>
         </div>
 
-        <div className="hidden justify-self-center lg:flex">
-          <HeroIllustration />
+        <div
+          className={
+            primaryBanner
+              ? "flex justify-center lg:justify-self-center"
+              : "hidden justify-self-center lg:flex"
+          }
+        >
+          {primaryBanner ? <HeroBannerImage banner={primaryBanner} /> : <HeroIllustration />}
         </div>
       </div>
     </section>
@@ -182,7 +189,8 @@ function DefaultHero() {
 export function HomePage() {
   const { hash } = useLocation();
   const { data: banners } = usePublicBanners();
-  const hasBanners = Boolean(banners && banners.length > 0);
+  const primaryBanner = banners?.[0];
+  const secondaryBanners = banners?.slice(1) ?? [];
 
   useEffect(() => {
     if (!hash) return;
@@ -192,7 +200,8 @@ export function HomePage() {
 
   return (
     <div>
-      {hasBanners ? <HomeBannerHero banners={banners!} /> : <DefaultHero />}
+      <Hero primaryBanner={primaryBanner} />
+      <SecondaryBannerStrip banners={secondaryBanners} />
 
       <section className="page-shell py-16 sm:py-24">
         <div className="mx-auto max-w-2xl text-center">
