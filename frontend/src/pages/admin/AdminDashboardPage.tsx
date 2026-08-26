@@ -67,6 +67,20 @@ export function AdminDashboardPage() {
         </div>
       </Card>
 
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">Home Page Banners</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Publish images to the public home page — result showcases, advertising, announcements.
+            </p>
+          </div>
+          <Link to="/admin/banners">
+            <Button variant="secondary">Manage banners →</Button>
+          </Link>
+        </div>
+      </Card>
+
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <h2 className="text-lg font-semibold text-slate-900">Classes</h2>

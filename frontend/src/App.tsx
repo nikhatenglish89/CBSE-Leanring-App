@@ -6,6 +6,7 @@ import { Layout } from "./components/layout/Layout";
 import { Spinner, ToastProvider } from "./components/ui";
 import { useAuthBootstrap } from "./hooks/useAuthBootstrap";
 import { queryClient } from "./lib/queryClient";
+import { AdminBannersPage } from "./pages/admin/AdminBannersPage";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
 import { AdminUserDetailPage } from "./pages/admin/AdminUserDetailPage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
@@ -164,6 +165,14 @@ export function App() {
               element={
                 <ProtectedRoute allow={["ADMIN", "SUPER_ADMIN", "CONTENT_MANAGER", "SUPPORT_AGENT"]}>
                   <AdminDashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/banners"
+              element={
+                <ProtectedRoute allow={["ADMIN", "SUPER_ADMIN", "CONTENT_MANAGER"]}>
+                  <AdminBannersPage />
                 </ProtectedRoute>
               }
             />

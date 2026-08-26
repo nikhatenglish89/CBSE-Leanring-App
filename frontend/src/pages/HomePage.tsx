@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 
+import { HomeBannerSection } from "../components/home/HomeBannerSection";
 import { Badge, Button } from "../components/ui";
 import { BRAND } from "../config/brand";
 
@@ -183,6 +184,8 @@ export function HomePage() {
           </div>
         </div>
       </section>
+
+      <HomeBannerSection />
 
       <section className="page-shell py-16 sm:py-24">
         <div className="mx-auto max-w-2xl text-center">

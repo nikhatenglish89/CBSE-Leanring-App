@@ -13,6 +13,7 @@ from app.core.exceptions import (
 )
 from app.modules.assistant.router import router as assistant_router
 from app.modules.auth.router import router as auth_router
+from app.modules.banners.router import router as banners_router
 from app.modules.classes.router import router as classes_router
 from app.modules.courses.router import router as courses_router
 from app.modules.interaction.router import router as interaction_router
@@ -41,6 +42,7 @@ def create_app() -> FastAPI:
     app.add_exception_handler(Exception, unhandled_exception_handler)
 
     app.include_router(auth_router)
+    app.include_router(banners_router)
     app.include_router(users_router)
     app.include_router(classes_router)
     app.include_router(subjects_router)
