@@ -8,6 +8,7 @@ const FOOTER_LINKS = [
   { label: "Study Videos", to: "/study-videos" },
   { label: "Teacher Interaction", to: "/teacher-interaction" },
   { label: "Practice Tests", to: "/practice-tests" },
+  { label: "Feedback", to: "/feedback" },
 ];
 
 export function Footer() {

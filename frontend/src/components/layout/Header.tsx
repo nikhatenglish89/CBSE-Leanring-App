@@ -23,6 +23,7 @@ const FEATURE_NAV_LINKS = [
   { label: "Study Videos", to: "/study-videos" },
   { label: "Teacher Interaction", to: "/teacher-interaction" },
   { label: "Practice Tests", to: "/practice-tests" },
+  { label: "Feedback", to: "/feedback" },
 ];
 
 // Only shown to signed-in Students/Teachers — messaging always needs a

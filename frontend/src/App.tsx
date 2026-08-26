@@ -8,8 +8,10 @@ import { useAuthBootstrap } from "./hooks/useAuthBootstrap";
 import { queryClient } from "./lib/queryClient";
 import { AdminBannersPage } from "./pages/admin/AdminBannersPage";
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage";
+import { AdminFeedbackPage } from "./pages/admin/AdminFeedbackPage";
 import { AdminUserDetailPage } from "./pages/admin/AdminUserDetailPage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
+import { FeedbackPage } from "./pages/FeedbackPage";
 import { ForcePasswordResetPage } from "./pages/ForcePasswordResetPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { HomePage } from "./pages/HomePage";
@@ -116,6 +118,14 @@ export function App() {
               }
             />
             <Route
+              path="/feedback"
+              element={
+                <ProtectedRoute>
+                  <FeedbackPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/practice-tests"
               element={
                 <ProtectedRoute>
@@ -186,6 +196,14 @@ export function App() {
               element={
                 <ProtectedRoute allow={["ADMIN", "SUPER_ADMIN", "CONTENT_MANAGER"]}>
                   <AdminBannersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/feedback"
+              element={
+                <ProtectedRoute allow={["ADMIN", "SUPER_ADMIN", "SUPPORT_AGENT"]}>
+                  <AdminFeedbackPage />
                 </ProtectedRoute>
               }
             />

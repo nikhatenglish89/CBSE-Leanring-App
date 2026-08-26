@@ -81,6 +81,20 @@ export function AdminDashboardPage() {
         </div>
       </Card>
 
+      <Card>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">User Feedback</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Bug reports, suggestions, and general feedback from students, teachers, and parents.
+            </p>
+          </div>
+          <Link to="/admin/feedback">
+            <Button variant="secondary">Review feedback →</Button>
+          </Link>
+        </div>
+      </Card>
+
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <h2 className="text-lg font-semibold text-slate-900">Classes</h2>

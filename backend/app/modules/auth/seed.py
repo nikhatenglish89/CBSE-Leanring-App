@@ -24,6 +24,7 @@ DEFAULT_PERMISSIONS: list[tuple[str, str]] = [
     ("chapter:manage", "Create/update/delete chapters"),
     ("banner:manage", "Upload/update/delete home page banners"),
     ("message:moderate", "View any student-teacher conversation for safety oversight"),
+    ("feedback:manage", "View and triage submitted user feedback"),
     ("test:create", "Create tests"),
     ("test:update", "Update tests"),
     ("test:publish", "Publish tests"),
@@ -41,7 +42,7 @@ DEFAULT_ROLE_PERMISSIONS: dict[str, list[str]] = {
                           "test:create", "test:update", "test:publish"],
     "TEACHER": ["course:view", "course:create", "course:update", "course:delete",
                 "test:create", "test:update"],
-    "SUPPORT_AGENT": ["user:view", "payment:view"],
+    "SUPPORT_AGENT": ["user:view", "payment:view", "feedback:manage"],
     "STUDENT": ["course:view"],
     "PARENT": ["course:view"],
 }
