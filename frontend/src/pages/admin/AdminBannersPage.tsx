@@ -125,13 +125,14 @@ export function AdminBannersPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {banners.map((banner) => (
             <Card key={banner.id} className="flex flex-col gap-3">
-              <div className="flex h-36 w-full items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
-                <img
-                  src={bannerImageUrl(banner.id)}
-                  alt={banner.title}
-                  className="h-full w-full object-contain"
-                />
-              </div>
+              {/* Natural aspect ratio, no forced box — object-contain in a
+               * fixed-height frame would letterbox any image that isn't
+               * that exact shape, leaving blank space around it. */}
+              <img
+                src={bannerImageUrl(banner.id)}
+                alt={banner.title}
+                className="w-full rounded-lg border border-slate-200"
+              />
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="truncate font-medium text-slate-800">{banner.title}</p>
