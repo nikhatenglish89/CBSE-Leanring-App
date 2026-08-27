@@ -26,6 +26,7 @@ from app.modules.practice import models as practice_models  # noqa: E402,F401
 from app.modules.interaction import models as interaction_models  # noqa: E402,F401
 from app.modules.messaging import models as messaging_models  # noqa: E402,F401
 from app.modules.feedback import models as feedback_models  # noqa: E402,F401
+from app.modules.groups import models as groups_models  # noqa: E402,F401
 
 config = context.config
 if config.config_file_name is not None:

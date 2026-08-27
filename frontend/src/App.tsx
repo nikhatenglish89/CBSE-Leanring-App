@@ -14,6 +14,8 @@ import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { FeedbackPage } from "./pages/FeedbackPage";
 import { ForcePasswordResetPage } from "./pages/ForcePasswordResetPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
+import { GroupDetailPage } from "./pages/GroupDetailPage";
+import { GroupsPage } from "./pages/GroupsPage";
 import { HomePage } from "./pages/HomePage";
 import { LessonDetailPage } from "./pages/LessonDetailPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -114,6 +116,22 @@ export function App() {
               element={
                 <ProtectedRoute allow={["STUDENT", "TEACHER"]}>
                   <MessagesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/groups"
+              element={
+                <ProtectedRoute allow={["STUDENT", "TEACHER"]}>
+                  <GroupsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/groups/:groupId"
+              element={
+                <ProtectedRoute allow={["STUDENT", "TEACHER"]}>
+                  <GroupDetailPage />
                 </ProtectedRoute>
               }
             />

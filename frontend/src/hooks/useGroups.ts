@@ -1,0 +1,77 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import { api } from "../lib/api";
+import type { ApiSuccess } from "../types/auth";
+import type { Group, GroupDetail } from "../types/groups";
+
+export function useMyGroups() {
+  return useQuery({
+    queryKey: ["my-groups"],
+    queryFn: async () => {
+      const { data } = await api.get<ApiSuccess<Group[]>>("/groups/mine");
+      return data.data;
+    },
+  });
+}
+
+export function useGroupDetail(groupId: string | undefined) {
+  return useQuery({
+    queryKey: ["group", groupId],
+    queryFn: async () => {
+      const { data } = await api.get<ApiSuccess<GroupDetail>>(`/groups/${groupId}`);
+      return data.data;
+    },
+    enabled: Boolean(groupId),
+  });
+}
+
+export function useCreateGroup() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: { name: string; description?: string }) => {
+      const { data } = await api.post<ApiSuccess<Group>>("/groups", payload);
+      return data.data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["my-groups"] }),
+  });
+}
+
+export function useAddGroupMember(groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (studentId: string) => {
+      await api.post(`/groups/${groupId}/members`, { student_id: studentId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group", groupId] });
+      queryClient.invalidateQueries({ queryKey: ["my-groups"] });
+    },
+  });
+}
+
+export function useRemoveGroupMember(groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (studentId: string) => {
+      await api.delete(`/groups/${groupId}/members/${studentId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group", groupId] });
+      queryClient.invalidateQueries({ queryKey: ["my-groups"] });
+    },
+  });
+}
+
+export function useCreateGroupTask(groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: { title: string; description?: string; due_date?: string | null }) => {
+      const { data } = await api.post(`/groups/${groupId}/tasks`, payload);
+      return data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["group", groupId] });
+      queryClient.invalidateQueries({ queryKey: ["my-groups"] });
+    },
+  });
+}

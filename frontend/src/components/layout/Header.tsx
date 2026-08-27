@@ -26,9 +26,9 @@ const FEATURE_NAV_LINKS = [
   { label: "Feedback", to: "/feedback" },
 ];
 
-// Only shown to signed-in Students/Teachers — messaging always needs a
-// counterpart of the other role, so it's meaningless for anyone else.
-const MESSAGING_ROLES = new Set<UserRole>(["STUDENT", "TEACHER"]);
+// Only shown to signed-in Students/Teachers — messaging and groups always
+// involve a student-teacher pairing, so both are meaningless for anyone else.
+const STUDENT_TEACHER_ROLES = new Set<UserRole>(["STUDENT", "TEACHER"]);
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -84,13 +84,21 @@ export function Header() {
                   {link.label}
                 </Link>
               ))}
-              {MESSAGING_ROLES.has(user.role) && (
-                <Link
-                  to="/messages"
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-                >
-                  Messages
-                </Link>
+              {STUDENT_TEACHER_ROLES.has(user.role) && (
+                <>
+                  <Link
+                    to="/messages"
+                    className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                  >
+                    Messages
+                  </Link>
+                  <Link
+                    to="/groups"
+                    className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                  >
+                    Groups
+                  </Link>
+                </>
               )}
             </nav>
 
@@ -182,14 +190,23 @@ export function Header() {
               {link.label}
             </Link>
           ))}
-          {MESSAGING_ROLES.has(user.role) && (
-            <Link
-              to="/messages"
-              className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-              onClick={() => setMenuOpen(false)}
-            >
-              Messages
-            </Link>
+          {STUDENT_TEACHER_ROLES.has(user.role) && (
+            <>
+              <Link
+                to="/messages"
+                className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                onClick={() => setMenuOpen(false)}
+              >
+                Messages
+              </Link>
+              <Link
+                to="/groups"
+                className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                onClick={() => setMenuOpen(false)}
+              >
+                Groups
+              </Link>
+            </>
           )}
           <Link
             to="/profile"
