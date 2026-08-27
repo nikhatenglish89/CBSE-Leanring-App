@@ -1,7 +1,7 @@
 from app.core.security import hash_password
 from app.modules.auth import repository as auth_repo
 from app.modules.users import repository as users_repo
-from tests.conftest import TestingSessionLocal
+from tests.conftest import TestingSessionLocal, solve_captcha
 from tests.test_curriculum import _auth_headers, _get_seeded_class_and_subject
 
 
@@ -23,13 +23,17 @@ def _create_admin(email="admin.users@example.com", password="AdminPass123", role
 
 def _admin_headers(client, email="admin.users@example.com", password="AdminPass123"):
     _create_admin(email, password, role_name="ADMIN")
-    tokens = client.post("/api/v1/auth/login", json={"email": email, "password": password}).json()["data"]
+    tokens = client.post(
+        "/api/v1/auth/login", json={"email": email, "password": password, **solve_captcha(client)}
+    ).json()["data"]
     return {"Authorization": f"Bearer {tokens['access_token']}"}
 
 
 def _super_admin_headers(client, email="superadmin.users@example.com", password="SuperAdminPass123"):
     _create_admin(email, password, role_name="SUPER_ADMIN")
-    tokens = client.post("/api/v1/auth/login", json={"email": email, "password": password}).json()["data"]
+    tokens = client.post(
+        "/api/v1/auth/login", json={"email": email, "password": password, **solve_captcha(client)}
+    ).json()["data"]
     return {"Authorization": f"Bearer {tokens['access_token']}"}
 
 
@@ -105,7 +109,8 @@ def test_admin_created_account_must_reset_password_then_login_normally(client):
     temp_password = created["temporary_password"]
 
     login = client.post(
-        "/api/v1/auth/login", json={"email": "resetflow.student@example.com", "password": temp_password}
+        "/api/v1/auth/login",
+        json={"email": "resetflow.student@example.com", "password": temp_password, **solve_captcha(client)},
     )
     assert login.status_code == 200
     student_headers = {"Authorization": f"Bearer {login.json()['data']['access_token']}"}
@@ -125,11 +130,17 @@ def test_admin_created_account_must_reset_password_then_login_normally(client):
 
     # old temp password no longer works, new one does
     old_login = client.post(
-        "/api/v1/auth/login", json={"email": "resetflow.student@example.com", "password": temp_password}
+        "/api/v1/auth/login",
+        json={"email": "resetflow.student@example.com", "password": temp_password, **solve_captcha(client)},
     )
     assert old_login.status_code == 401
     new_login = client.post(
-        "/api/v1/auth/login", json={"email": "resetflow.student@example.com", "password": "BrandNewPass456"}
+        "/api/v1/auth/login",
+        json={
+            "email": "resetflow.student@example.com",
+            "password": "BrandNewPass456",
+            **solve_captcha(client),
+        },
     )
     assert new_login.status_code == 200
 
@@ -256,7 +267,8 @@ def test_admin_created_admin_account_must_reset_password(client):
     temp_password = created["temporary_password"]
 
     login = client.post(
-        "/api/v1/auth/login", json={"email": "resetflow.admin@example.com", "password": temp_password}
+        "/api/v1/auth/login",
+        json={"email": "resetflow.admin@example.com", "password": temp_password, **solve_captcha(client)},
     )
     assert login.status_code == 200
     admin_headers = {"Authorization": f"Bearer {login.json()['data']['access_token']}"}

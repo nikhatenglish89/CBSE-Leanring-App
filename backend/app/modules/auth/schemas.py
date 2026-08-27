@@ -23,6 +23,8 @@ class RegisterRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+    captcha_token: str
+    captcha_answer: str = Field(min_length=1, max_length=16)
 
 
 class RefreshRequest(BaseModel):

@@ -15,7 +15,9 @@ def _register(client, email="alice@example.com", password="StrongPass123", role=
 
 
 def _login(client, email="alice@example.com", password="StrongPass123"):
-    return client.post("/api/v1/auth/login", json={"email": email, "password": password})
+    return client.post(
+        "/api/v1/auth/login", json={"email": email, "password": password, **solve_captcha(client)}
+    )
 
 
 def test_register_success(client):
@@ -50,6 +52,22 @@ def test_login_wrong_password(client):
     resp = _login(client, email="carol@example.com", password="wrong-password")
     assert resp.status_code == 401
     assert resp.json()["error"]["code"] == "INVALID_CREDENTIALS"
+
+
+def test_login_rejects_wrong_captcha_answer(client):
+    _register(client, email="carol.captcha@example.com")
+    challenge = client.get("/api/v1/auth/captcha").json()["data"]
+    resp = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": "carol.captcha@example.com",
+            "password": "StrongPass123",
+            "captcha_token": challenge["token"],
+            "captcha_answer": "wrong",
+        },
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "CAPTCHA_INVALID"
 
 
 def test_refresh_success_and_rotation(client):

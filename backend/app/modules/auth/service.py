@@ -19,7 +19,7 @@ from app.core.security import (
 )
 from app.models.base import utcnow
 from app.modules.auth import repository as auth_repo
-from app.modules.auth.schemas import CaptchaOut, ChangePasswordRequest, RegisterRequest, TokenPair
+from app.modules.auth.schemas import CaptchaOut, ChangePasswordRequest, LoginRequest, RegisterRequest, TokenPair
 from app.modules.users import repository as users_repo
 from app.modules.users.models import User
 
@@ -144,9 +144,11 @@ def resend_verification_email(db: Session, user: User) -> None:
         )
 
 
-def login(db: Session, email: str, password: str) -> tuple[User, TokenPair]:
-    user = users_repo.get_user_by_email(db, email)
-    if user is None or not verify_password(password, user.password_hash):
+def login(db: Session, payload: LoginRequest) -> tuple[User, TokenPair]:
+    verify_captcha(payload.captcha_token, payload.captcha_answer)
+
+    user = users_repo.get_user_by_email(db, payload.email)
+    if user is None or not verify_password(payload.password, user.password_hash):
         raise AppError("INVALID_CREDENTIALS", "Incorrect email or password.", 401)
     if user.status != "ACTIVE":
         raise AppError("ACCOUNT_INACTIVE", "This account is not active.", 403)

@@ -7,6 +7,8 @@ import type { ApiSuccess, AuthTokens, User } from "../types/auth";
 interface LoginPayload {
   email: string;
   password: string;
+  captcha_token: string;
+  captcha_answer: string;
 }
 
 interface RegisterPayload extends LoginPayload {
@@ -62,8 +64,15 @@ export function useAuth() {
     mutationFn: async (payload: RegisterPayload) => {
       await api.post<ApiSuccess<User>>("/auth/register", payload);
       // Registration doesn't log the user in automatically — a distinct,
-      // explicit login keeps the auth flow's mental model simple.
-      return loginMutation.mutateAsync({ email: payload.email, password: payload.password });
+      // explicit login keeps the auth flow's mental model simple. Reuses
+      // the same just-verified CAPTCHA rather than asking the user to
+      // prove they're human twice in one continuous signup action.
+      return loginMutation.mutateAsync({
+        email: payload.email,
+        password: payload.password,
+        captcha_token: payload.captcha_token,
+        captcha_answer: payload.captcha_answer,
+      });
     },
   });
 

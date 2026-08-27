@@ -18,7 +18,9 @@ def _register(client, email, role, password="StrongPass123"):
 
 
 def _login(client, email, password="StrongPass123"):
-    return client.post("/api/v1/auth/login", json={"email": email, "password": password})
+    return client.post(
+        "/api/v1/auth/login", json={"email": email, "password": password, **solve_captcha(client)}
+    )
 
 
 def _auth_headers(client, email, role):

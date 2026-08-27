@@ -1,10 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import axios from "axios";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 
 import { AuthLayout } from "../components/layout/AuthLayout";
-import { Button, Input, useToast } from "../components/ui";
+import { Button, CaptchaField, Input, useToast } from "../components/ui";
+import type { CaptchaValue } from "../components/ui";
 import { useAuth } from "../hooks/useAuth";
 import { roleHomePath } from "../lib/roleRoutes";
 
@@ -19,6 +22,8 @@ export function LoginPage() {
   const { login, isLoggingIn } = useAuth();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const [captcha, setCaptcha] = useState<CaptchaValue>({ captcha_token: "", captcha_answer: "" });
+  const [captchaAttempt, setCaptchaAttempt] = useState(0);
   const {
     register,
     handleSubmit,
@@ -27,10 +32,17 @@ export function LoginPage() {
 
   const onSubmit = async (values: FormValues) => {
     try {
-      const user = await login(values);
+      const user = await login({ ...values, ...captcha });
       navigate(roleHomePath(user.role));
-    } catch {
-      showToast("Incorrect email or password.", "error");
+    } catch (error) {
+      const apiError = axios.isAxiosError(error) ? error.response?.data?.error : undefined;
+      setCaptchaAttempt((n) => n + 1);
+      showToast(
+        apiError?.code === "CAPTCHA_INVALID"
+          ? "That code didn't match — please try the new one below."
+          : "Incorrect email or password.",
+        "error"
+      );
     }
   };
 
@@ -65,6 +77,7 @@ export function LoginPage() {
         <Link to="/forgot-password" className="-mt-2 self-end text-sm font-medium text-brand-600 hover:underline">
           Forgot password?
         </Link>
+        <CaptchaField onChange={setCaptcha} reloadSignal={captchaAttempt || undefined} />
         <Button type="submit" isLoading={isLoggingIn} className="mt-2 w-full">
           Log in
         </Button>

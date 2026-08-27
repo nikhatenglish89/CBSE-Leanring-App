@@ -43,7 +43,7 @@ def register(
 
 @router.post("/login")
 def login(payload: LoginRequest, db: Annotated[Session, Depends(get_db)]) -> dict:
-    _, tokens = auth_service.login(db, payload.email, payload.password)
+    _, tokens = auth_service.login(db, payload)
     return success(tokens.model_dump())
 
 
