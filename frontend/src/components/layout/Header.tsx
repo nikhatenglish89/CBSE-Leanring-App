@@ -37,6 +37,24 @@ function initials(name: string): string {
   return (first + last).toUpperCase();
 }
 
+// A link is "current" on an exact match or on any of its sub-routes (e.g.
+// /groups/:id should still highlight the Groups link).
+function isNavActive(pathname: string, to: string): boolean {
+  return pathname === to || pathname.startsWith(`${to}/`);
+}
+
+function navLinkClass(active: boolean): string {
+  return `rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+    active ? "bg-brand-50 text-brand-700" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+  }`;
+}
+
+function mobileNavLinkClass(active: boolean): string {
+  return `block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+    active ? "bg-brand-50 text-brand-700" : "text-slate-700 hover:bg-slate-100"
+  }`;
+}
+
 function Logo() {
   return (
     <span className="flex items-center gap-2 font-display text-lg font-bold tracking-tight text-slate-900">
@@ -52,7 +70,19 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const homePath = isAuthenticated && user ? roleHomePath(user.role) : "/";
-  const isActiveHome = location.pathname === homePath;
+
+  const authedNavLinks = user
+    ? [
+        { label: "Dashboard", to: homePath },
+        ...FEATURE_NAV_LINKS,
+        ...(STUDENT_TEACHER_ROLES.has(user.role)
+          ? [
+              { label: "Messages", to: "/messages" },
+              { label: "Groups", to: "/groups" },
+            ]
+          : []),
+      ]
+    : [];
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/85 backdrop-blur">
@@ -63,46 +93,15 @@ export function Header() {
 
         {isAuthenticated && user ? (
           <>
-            <nav className="hidden items-center gap-1 md:flex">
-              <Link
-                to={homePath}
-                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  isActiveHome ? "bg-brand-50 text-brand-700" : "text-slate-600 hover:bg-slate-100"
-                }`}
-              >
-                Dashboard
-              </Link>
-            </nav>
-
             <nav className="hidden items-center gap-1 lg:flex">
-              {FEATURE_NAV_LINKS.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-                >
+              {authedNavLinks.map((link) => (
+                <Link key={link.to} to={link.to} className={navLinkClass(isNavActive(location.pathname, link.to))}>
                   {link.label}
                 </Link>
               ))}
-              {STUDENT_TEACHER_ROLES.has(user.role) && (
-                <>
-                  <Link
-                    to="/messages"
-                    className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-                  >
-                    Messages
-                  </Link>
-                  <Link
-                    to="/groups"
-                    className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-                  >
-                    Groups
-                  </Link>
-                </>
-              )}
             </nav>
 
-            <div className="hidden items-center gap-3 md:flex">
+            <div className="hidden items-center gap-3 lg:flex">
               <Link
                 to="/profile"
                 title="Edit profile"
@@ -124,7 +123,7 @@ export function Header() {
 
             <button
               type="button"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 md:hidden"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 lg:hidden"
               aria-label="Toggle menu"
               onClick={() => setMenuOpen((open) => !open)}
             >
@@ -141,11 +140,7 @@ export function Header() {
           <>
             <nav className="hidden items-center gap-1 lg:flex">
               {FEATURE_NAV_LINKS.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
-                >
+                <Link key={link.to} to={link.to} className={navLinkClass(isNavActive(location.pathname, link.to))}>
                   {link.label}
                 </Link>
               ))}
@@ -163,8 +158,8 @@ export function Header() {
       </div>
 
       {isAuthenticated && user && menuOpen && (
-        <div className="border-t border-slate-200 bg-white px-4 py-4 md:hidden">
-          <div className="mb-3 flex items-center gap-2">
+        <div className="flex flex-col gap-0.5 border-t border-slate-200 bg-white px-4 py-4 lg:hidden">
+          <div className="mb-2 flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100 text-xs font-semibold text-brand-700">
               {initials(user.full_name)}
             </span>
@@ -173,44 +168,19 @@ export function Header() {
               <span className="text-slate-500">{ROLE_LABEL[user.role]}</span>
             </span>
           </div>
-          <Link
-            to={homePath}
-            className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-            onClick={() => setMenuOpen(false)}
-          >
-            Dashboard
-          </Link>
-          {FEATURE_NAV_LINKS.map((link) => (
+          {authedNavLinks.map((link) => (
             <Link
               key={link.to}
               to={link.to}
-              className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+              className={mobileNavLinkClass(isNavActive(location.pathname, link.to))}
               onClick={() => setMenuOpen(false)}
             >
               {link.label}
             </Link>
           ))}
-          {STUDENT_TEACHER_ROLES.has(user.role) && (
-            <>
-              <Link
-                to="/messages"
-                className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-                onClick={() => setMenuOpen(false)}
-              >
-                Messages
-              </Link>
-              <Link
-                to="/groups"
-                className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
-                onClick={() => setMenuOpen(false)}
-              >
-                Groups
-              </Link>
-            </>
-          )}
           <Link
             to="/profile"
-            className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100"
+            className={mobileNavLinkClass(isNavActive(location.pathname, "/profile"))}
             onClick={() => setMenuOpen(false)}
           >
             Edit profile
