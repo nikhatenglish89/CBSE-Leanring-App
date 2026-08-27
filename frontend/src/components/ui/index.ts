@@ -1,6 +1,8 @@
 export { Badge } from "./Badge";
 export { Button } from "./Button";
 export { Card } from "./Card";
+export { CaptchaField } from "./CaptchaField";
+export type { CaptchaValue } from "./CaptchaField";
 export { EmptyState } from "./EmptyState";
 export { Input } from "./Input";
 export { Select } from "./Select";

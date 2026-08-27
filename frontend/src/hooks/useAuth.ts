@@ -12,6 +12,14 @@ interface LoginPayload {
 interface RegisterPayload extends LoginPayload {
   full_name: string;
   role: "STUDENT" | "PARENT" | "TEACHER";
+  captcha_token: string;
+  captcha_answer: string;
+}
+
+interface ForgotPasswordPayload {
+  email: string;
+  captcha_token: string;
+  captcha_answer: string;
 }
 
 interface UpdateProfilePayload {
@@ -80,8 +88,8 @@ export function useAuth() {
   });
 
   const forgotPasswordMutation = useMutation({
-    mutationFn: async (email: string): Promise<void> => {
-      await api.post("/auth/forgot-password", { email });
+    mutationFn: async (payload: ForgotPasswordPayload): Promise<void> => {
+      await api.post("/auth/forgot-password", payload);
     },
   });
 

@@ -2,12 +2,14 @@ import uuid
 
 from sqlalchemy.orm import Session
 
+from app.core.captcha import generate_captcha_code, render_captcha_svg
 from app.core.config import settings
 from app.core.email import send_email
 from app.core.exceptions import AppError
 from app.core.security import (
     TokenError,
     create_access_token,
+    create_captcha_token,
     create_email_verification_token,
     create_password_reset_token,
     create_refresh_token,
@@ -17,7 +19,7 @@ from app.core.security import (
 )
 from app.models.base import utcnow
 from app.modules.auth import repository as auth_repo
-from app.modules.auth.schemas import ChangePasswordRequest, RegisterRequest, TokenPair
+from app.modules.auth.schemas import CaptchaOut, ChangePasswordRequest, RegisterRequest, TokenPair
 from app.modules.users import repository as users_repo
 from app.modules.users.models import User
 
@@ -67,7 +69,24 @@ def send_verification_email(user: User) -> bool:
         return False
 
 
+def generate_captcha() -> CaptchaOut:
+    code = generate_captcha_code()
+    return CaptchaOut(token=create_captcha_token(code), svg=render_captcha_svg(code))
+
+
+def verify_captcha(token: str, answer: str) -> None:
+    try:
+        payload = decode_token(token, expected_type="captcha")
+    except TokenError as exc:
+        raise AppError("CAPTCHA_INVALID", "That CAPTCHA has expired — please try again.", 400) from exc
+
+    if payload["sub"].strip().upper() != answer.strip().upper():
+        raise AppError("CAPTCHA_INVALID", "That didn't match — please try again.", 400)
+
+
 def register(db: Session, payload: RegisterRequest) -> User:
+    verify_captcha(payload.captcha_token, payload.captcha_answer)
+
     if users_repo.get_user_by_email(db, payload.email) is not None:
         raise AppError("EMAIL_ALREADY_REGISTERED", "An account with this email already exists.", 409)
 

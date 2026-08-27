@@ -1,13 +1,19 @@
 import uuid
 
 from app.modules.users import repository as users_repo
-from tests.conftest import TestingSessionLocal
+from tests.conftest import TestingSessionLocal, solve_captcha
 
 
 def _register(client, email, role, password="StrongPass123"):
     return client.post(
         "/api/v1/auth/register",
-        json={"email": email, "password": password, "full_name": "Test User", "role": role},
+        json={
+            "email": email,
+            "password": password,
+            "full_name": "Test User",
+            "role": role,
+            **solve_captcha(client),
+        },
     )
 
 

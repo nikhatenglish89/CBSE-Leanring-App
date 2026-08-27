@@ -50,3 +50,15 @@ def _setup_database():
 @pytest.fixture
 def client():
     return TestClient(app)
+
+
+def solve_captcha(client) -> dict:
+    """Fetches a real CAPTCHA challenge and decodes its expected answer
+    from the signed token — legitimate for tests since the test process
+    trusts the same JWT secret the token was signed with, unlike a real
+    attacker who only ever sees the rendered SVG."""
+    from app.core.security import decode_token
+
+    challenge = client.get("/api/v1/auth/captcha").json()["data"]
+    code = decode_token(challenge["token"], expected_type="captcha")["sub"]
+    return {"captcha_token": challenge["token"], "captcha_answer": code}

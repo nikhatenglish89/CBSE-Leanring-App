@@ -1,11 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import axios from "axios";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
 import { z } from "zod";
 
 import { AuthLayout } from "../components/layout/AuthLayout";
-import { Button, Input, useToast } from "../components/ui";
+import { Button, CaptchaField, Input, useToast } from "../components/ui";
+import type { CaptchaValue } from "../components/ui";
 import { useAuth } from "../hooks/useAuth";
 
 const schema = z.object({
@@ -18,6 +20,8 @@ export function ForgotPasswordPage() {
   const { forgotPassword, isSendingResetLink } = useAuth();
   const { showToast } = useToast();
   const [sent, setSent] = useState(false);
+  const [captcha, setCaptcha] = useState<CaptchaValue>({ captcha_token: "", captcha_answer: "" });
+  const [captchaAttempt, setCaptchaAttempt] = useState(0);
   const {
     register,
     handleSubmit,
@@ -26,10 +30,17 @@ export function ForgotPasswordPage() {
 
   const onSubmit = async (values: FormValues) => {
     try {
-      await forgotPassword(values.email);
+      await forgotPassword({ email: values.email, ...captcha });
       setSent(true);
-    } catch {
-      showToast("Something went wrong — please try again.", "error");
+    } catch (error) {
+      const apiError = axios.isAxiosError(error) ? error.response?.data?.error : undefined;
+      setCaptchaAttempt((n) => n + 1);
+      showToast(
+        apiError?.code === "CAPTCHA_INVALID"
+          ? "That code didn't match — please try the new one below."
+          : "Something went wrong — please try again.",
+        "error"
+      );
     }
   };
 
@@ -77,6 +88,7 @@ export function ForgotPasswordPage() {
           error={errors.email?.message}
           {...register("email")}
         />
+        <CaptchaField onChange={setCaptcha} reloadSignal={captchaAttempt || undefined} />
         <Button type="submit" isLoading={isSendingResetLink} className="mt-2 w-full">
           Send reset link
         </Button>

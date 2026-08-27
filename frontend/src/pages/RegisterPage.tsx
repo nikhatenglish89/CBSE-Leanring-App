@@ -1,10 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import axios from "axios";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 
 import { AuthLayout } from "../components/layout/AuthLayout";
-import { Button, Input, Select, useToast } from "../components/ui";
+import { Button, CaptchaField, Input, Select, useToast } from "../components/ui";
+import type { CaptchaValue } from "../components/ui";
 import { useAuth } from "../hooks/useAuth";
 import { roleHomePath } from "../lib/roleRoutes";
 
@@ -21,6 +24,8 @@ export function RegisterPage() {
   const { register: registerUser, isRegistering } = useAuth();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const [captcha, setCaptcha] = useState<CaptchaValue>({ captcha_token: "", captcha_answer: "" });
+  const [captchaAttempt, setCaptchaAttempt] = useState(0);
   const {
     register,
     handleSubmit,
@@ -29,11 +34,18 @@ export function RegisterPage() {
 
   const onSubmit = async (values: FormValues) => {
     try {
-      const user = await registerUser(values);
+      const user = await registerUser({ ...values, ...captcha });
       showToast("Account created! Check your email to verify your address.", "success");
       navigate(roleHomePath(user.role));
-    } catch {
-      showToast("Could not create your account. The email may already be registered.", "error");
+    } catch (error) {
+      const apiError = axios.isAxiosError(error) ? error.response?.data?.error : undefined;
+      setCaptchaAttempt((n) => n + 1);
+      showToast(
+        apiError?.code === "CAPTCHA_INVALID"
+          ? "That code didn't match — please try the new one below."
+          : "Could not create your account. The email may already be registered.",
+        "error"
+      );
     }
   };
 
@@ -71,6 +83,7 @@ export function RegisterPage() {
           <option value="PARENT">Parent</option>
           <option value="TEACHER">Teacher</option>
         </Select>
+        <CaptchaField onChange={setCaptcha} reloadSignal={captchaAttempt || undefined} />
         <Button type="submit" isLoading={isRegistering} className="mt-2 w-full">
           Create account
         </Button>

@@ -56,6 +56,14 @@ def create_password_reset_token(user_id: str) -> str:
     return token
 
 
+def create_captcha_token(code: str) -> str:
+    # The expected answer travels as the token's signed subject rather than
+    # in server-side storage — stateless, so it works the same whether
+    # Render is running one instance or several.
+    token, _, _ = _create_token(code, "captcha", timedelta(minutes=5))
+    return token
+
+
 class TokenError(Exception):
     pass
 

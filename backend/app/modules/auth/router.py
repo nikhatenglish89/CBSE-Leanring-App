@@ -7,6 +7,7 @@ from app.core.database import get_db
 from app.dependencies.auth import CurrentUser
 from app.modules.auth import service as auth_service
 from app.modules.auth.schemas import (
+    CaptchaOut,
     ChangePasswordRequest,
     ForgotPasswordRequest,
     LoginRequest,
@@ -21,6 +22,11 @@ from app.modules.users.schemas import UserOut
 from app.schemas.envelope import success
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
+
+
+@router.get("/captcha")
+def get_captcha() -> dict:
+    return success(auth_service.generate_captcha().model_dump())
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
@@ -77,6 +83,8 @@ def change_password(
 def forgot_password(
     payload: ForgotPasswordRequest, db: Annotated[Session, Depends(get_db)], background_tasks: BackgroundTasks
 ) -> dict:
+    auth_service.verify_captcha(payload.captcha_token, payload.captcha_answer)
+
     # Response is identical whether or not the email has an account —
     # deliberately doesn't reveal which, same reasoning as
     # find_user_for_password_reset's docstring.

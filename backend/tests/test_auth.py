@@ -1,7 +1,16 @@
+from tests.conftest import solve_captcha
+
+
 def _register(client, email="alice@example.com", password="StrongPass123", role="STUDENT"):
     return client.post(
         "/api/v1/auth/register",
-        json={"email": email, "password": password, "full_name": "Alice Example", "role": role},
+        json={
+            "email": email,
+            "password": password,
+            "full_name": "Alice Example",
+            "role": role,
+            **solve_captcha(client),
+        },
     )
 
 
@@ -222,13 +231,92 @@ def test_change_password_rejects_short_new_password(client):
 def test_forgot_password_existing_and_unknown_email_return_identical_response(client):
     _register(client, email="mallory@example.com", password="StrongPass123")
 
-    known = client.post("/api/v1/auth/forgot-password", json={"email": "mallory@example.com"})
-    unknown = client.post("/api/v1/auth/forgot-password", json={"email": "nobody-here@example.com"})
+    known = client.post(
+        "/api/v1/auth/forgot-password", json={"email": "mallory@example.com", **solve_captcha(client)}
+    )
+    unknown = client.post(
+        "/api/v1/auth/forgot-password", json={"email": "nobody-here@example.com", **solve_captcha(client)}
+    )
 
     # Deliberately indistinguishable — the endpoint must never reveal
     # whether an email has an account.
     assert known.status_code == unknown.status_code == 200
     assert known.json() == unknown.json() == {"success": True, "data": {"sent": True}}
+
+
+def test_captcha_endpoint_returns_token_and_svg(client):
+    resp = client.get("/api/v1/auth/captcha")
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["token"]
+    assert data["svg"].startswith("<svg")
+
+
+def test_register_rejects_wrong_captcha_answer(client):
+    challenge = client.get("/api/v1/auth/captcha").json()["data"]
+    resp = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "wrong.captcha@example.com",
+            "password": "StrongPass123",
+            "full_name": "Wrong Captcha",
+            "role": "STUDENT",
+            "captcha_token": challenge["token"],
+            "captcha_answer": "definitely-wrong",
+        },
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "CAPTCHA_INVALID"
+
+
+def test_register_rejects_garbage_captcha_token(client):
+    resp = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "garbage.captcha@example.com",
+            "password": "StrongPass123",
+            "full_name": "Garbage Captcha",
+            "role": "STUDENT",
+            "captcha_token": "not-a-real-token",
+            "captcha_answer": "whatever",
+        },
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "CAPTCHA_INVALID"
+
+
+def test_captcha_answer_is_case_insensitive(client):
+    challenge = client.get("/api/v1/auth/captcha").json()["data"]
+    from app.core.security import decode_token
+
+    code = decode_token(challenge["token"], expected_type="captcha")["sub"]
+    resp = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "case.captcha@example.com",
+            "password": "StrongPass123",
+            "full_name": "Case Captcha",
+            "role": "STUDENT",
+            "captcha_token": challenge["token"],
+            "captcha_answer": code.lower(),
+        },
+    )
+    assert resp.status_code == 201
+
+
+def test_forgot_password_rejects_wrong_captcha_answer(client):
+    _register(client, email="captcha.forgot@example.com", password="StrongPass123")
+    challenge = client.get("/api/v1/auth/captcha").json()["data"]
+    resp = client.post(
+        "/api/v1/auth/forgot-password",
+        json={
+            "email": "captcha.forgot@example.com",
+            "captcha_token": challenge["token"],
+            "captcha_answer": "wrong",
+        },
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "CAPTCHA_INVALID"
 
 
 def test_reset_password_with_valid_token_changes_password_and_revokes_sessions(client):
