@@ -41,7 +41,7 @@ function AuthGate({ children }: { children: ReactNode }) {
   const isReady = useAuthBootstrap();
   if (!isReady) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <div className="app-background flex min-h-screen items-center justify-center">
         <Spinner label="Loading EduSphere" className="text-base" />
       </div>
     );

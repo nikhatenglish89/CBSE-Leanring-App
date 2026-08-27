@@ -11,7 +11,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const { isAuthenticated } = useAuth();
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
+    <div className="app-background flex min-h-screen flex-col">
       <Header />
       <VerifyEmailBanner />
       <AccountApprovalBanner />
