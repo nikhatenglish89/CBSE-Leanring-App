@@ -4,6 +4,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.rate_limit import check_forgot_password_attempts, rate_limit_by_ip
 from app.dependencies.auth import CurrentUser
 from app.modules.auth import service as auth_service
 from app.modules.auth.schemas import (
@@ -29,7 +30,11 @@ def get_captcha() -> dict:
     return success(auth_service.generate_captcha().model_dump())
 
 
-@router.post("/register", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit_by_ip("register", max_requests=8, window_seconds=3600))],
+)
 def register(
     payload: RegisterRequest, db: Annotated[Session, Depends(get_db)], background_tasks: BackgroundTasks
 ) -> dict:
@@ -41,7 +46,9 @@ def register(
     return success(UserOut.from_user(user, is_verified=is_verified).model_dump(mode="json"))
 
 
-@router.post("/login")
+@router.post(
+    "/login", dependencies=[Depends(rate_limit_by_ip("login", max_requests=20, window_seconds=300))]
+)
 def login(payload: LoginRequest, db: Annotated[Session, Depends(get_db)]) -> dict:
     _, tokens = auth_service.login(db, payload)
     return success(tokens.model_dump())
@@ -65,7 +72,10 @@ def verify_email(payload: VerifyEmailRequest, db: Annotated[Session, Depends(get
     return success({"verified": True})
 
 
-@router.post("/resend-verification")
+@router.post(
+    "/resend-verification",
+    dependencies=[Depends(rate_limit_by_ip("resend-verification", max_requests=5, window_seconds=3600))],
+)
 def resend_verification(current_user: CurrentUser, db: Annotated[Session, Depends(get_db)]) -> dict:
     auth_service.resend_verification_email(db, current_user)
     return success({"sent": True})
@@ -79,11 +89,15 @@ def change_password(
     return success({"changed": True})
 
 
-@router.post("/forgot-password")
+@router.post(
+    "/forgot-password",
+    dependencies=[Depends(rate_limit_by_ip("forgot-password", max_requests=10, window_seconds=3600))],
+)
 def forgot_password(
     payload: ForgotPasswordRequest, db: Annotated[Session, Depends(get_db)], background_tasks: BackgroundTasks
 ) -> dict:
     auth_service.verify_captcha(payload.captcha_token, payload.captcha_answer)
+    check_forgot_password_attempts(payload.email)
 
     # Response is identical whether or not the email has an account —
     # deliberately doesn't reveal which, same reasoning as

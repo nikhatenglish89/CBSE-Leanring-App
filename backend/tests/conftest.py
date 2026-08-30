@@ -47,6 +47,17 @@ def _setup_database():
     Base.metadata.drop_all(bind=engine)
 
 
+@pytest.fixture(autouse=True)
+def _reset_rate_limits():
+    # FastAPI's TestClient sends every request from the same fake client
+    # IP, so per-IP counters would otherwise accumulate across unrelated
+    # tests in one run instead of resetting like a fresh caller would.
+    from app.core.rate_limit import _buckets
+
+    _buckets.clear()
+    yield
+
+
 @pytest.fixture
 def client():
     return TestClient(app)

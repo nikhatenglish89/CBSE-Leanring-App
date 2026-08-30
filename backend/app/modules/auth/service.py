@@ -6,6 +6,7 @@ from app.core.captcha import generate_captcha_code, render_captcha_svg
 from app.core.config import settings
 from app.core.email import send_email
 from app.core.exceptions import AppError
+from app.core.rate_limit import check_login_attempts, clear_login_attempts
 from app.core.security import (
     TokenError,
     create_access_token,
@@ -146,6 +147,7 @@ def resend_verification_email(db: Session, user: User) -> None:
 
 def login(db: Session, payload: LoginRequest) -> tuple[User, TokenPair]:
     verify_captcha(payload.captcha_token, payload.captcha_answer)
+    check_login_attempts(payload.email)
 
     user = users_repo.get_user_by_email(db, payload.email)
     if user is None or not verify_password(payload.password, user.password_hash):
@@ -153,6 +155,7 @@ def login(db: Session, payload: LoginRequest) -> tuple[User, TokenPair]:
     if user.status != "ACTIVE":
         raise AppError("ACCOUNT_INACTIVE", "This account is not active.", 403)
 
+    clear_login_attempts(payload.email)
     return user, _issue_token_pair(db, user)
 
 
