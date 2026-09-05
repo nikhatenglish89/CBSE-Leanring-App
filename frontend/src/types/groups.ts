@@ -9,6 +9,9 @@ export interface TaskSubmission {
   student_id: string;
   student_name: string;
   content: string;
+  file_name: string | null;
+  file_mime_type: string | null;
+  file_size: number | null;
   created_at: string;
   updated_at: string;
 }

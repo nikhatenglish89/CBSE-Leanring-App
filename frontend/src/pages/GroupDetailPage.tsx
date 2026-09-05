@@ -9,6 +9,7 @@ import { PageHeader } from "../components/layout/PageHeader";
 import { Badge, Button, Card, CardSkeleton, EmptyState, Spinner, Textarea, useToast } from "../components/ui";
 import { useAuth } from "../hooks/useAuth";
 import {
+  downloadSubmissionFile,
   useAddGroupMember,
   useCreateGroupTask,
   useGroupDetail,
@@ -17,7 +18,7 @@ import {
   useTaskSubmissions,
 } from "../hooks/useGroups";
 import { useMessageableUsers } from "../hooks/useMessaging";
-import { formatDateTime } from "../lib/format";
+import { formatDateTime, formatFileSize } from "../lib/format";
 import type { GroupTask } from "../types/groups";
 
 const taskSchema = z.object({
@@ -80,14 +81,16 @@ function TaskSubmissionForm({ groupId, task }: { groupId: string; task: GroupTas
   const submitTask = useSubmitTask(groupId, task.id);
   const { showToast } = useToast();
   const [content, setContent] = useState(task.my_submission?.content ?? "");
+  const [file, setFile] = useState<File | null>(null);
   const [isEditing, setIsEditing] = useState(!task.my_submission);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
     const trimmed = content.trim();
-    if (!trimmed) return;
+    if (!trimmed && !file) return;
     try {
-      await submitTask.mutateAsync(trimmed);
+      await submitTask.mutateAsync({ content: trimmed, file });
+      setFile(null);
       setIsEditing(false);
       showToast(task.my_submission ? "Submission updated." : "Task submitted.", "success");
     } catch {
@@ -96,10 +99,11 @@ function TaskSubmissionForm({ groupId, task }: { groupId: string; task: GroupTas
   };
 
   if (!isEditing && task.my_submission) {
+    const submission = task.my_submission;
     return (
       <div className="mt-2 flex flex-col gap-2 rounded-lg bg-emerald-50 p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <Badge tone="success">Submitted {formatDateTime(task.my_submission.updated_at)}</Badge>
+          <Badge tone="success">Submitted {formatDateTime(submission.updated_at)}</Badge>
           <button
             type="button"
             onClick={() => setIsEditing(true)}
@@ -108,7 +112,23 @@ function TaskSubmissionForm({ groupId, task }: { groupId: string; task: GroupTas
             Edit submission
           </button>
         </div>
-        <p className="whitespace-pre-wrap text-sm text-slate-700">{task.my_submission.content}</p>
+        {submission.content && (
+          <p className="whitespace-pre-wrap text-sm text-slate-700">{submission.content}</p>
+        )}
+        {submission.file_name && (
+          <button
+            type="button"
+            onClick={() =>
+              downloadSubmissionFile(groupId, task.id, submission.id, submission.file_name as string)
+            }
+            className="flex w-fit items-center gap-2 rounded-lg border border-emerald-200 bg-white px-3 py-1.5 text-xs font-medium text-brand-600 hover:underline"
+          >
+            📎 {submission.file_name}
+            {submission.file_size != null && (
+              <span className="text-slate-400">({formatFileSize(submission.file_size)})</span>
+            )}
+          </button>
+        )}
       </div>
     );
   }
@@ -122,8 +142,24 @@ function TaskSubmissionForm({ groupId, task }: { groupId: string; task: GroupTas
         placeholder="Type your answer or notes here..."
         className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
       />
+      <input
+        type="file"
+        accept=".pdf,.doc,.docx,.txt,image/png,image/jpeg,image/webp"
+        onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+        className="text-xs text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-slate-700 hover:file:bg-slate-200"
+      />
+      {!file && task.my_submission?.file_name && (
+        <p className="text-xs text-slate-500">
+          Keeping current attachment: {task.my_submission.file_name}
+        </p>
+      )}
       <div className="flex items-center gap-3">
-        <Button type="submit" isLoading={submitTask.isPending} disabled={!content.trim()} className="self-start">
+        <Button
+          type="submit"
+          isLoading={submitTask.isPending}
+          disabled={!content.trim() && !file}
+          className="self-start"
+        >
           {task.my_submission ? "Update submission" : "Submit"}
         </Button>
         {task.my_submission && (
@@ -131,6 +167,7 @@ function TaskSubmissionForm({ groupId, task }: { groupId: string; task: GroupTas
             type="button"
             onClick={() => {
               setContent(task.my_submission?.content ?? "");
+              setFile(null);
               setIsEditing(false);
             }}
             className="text-sm text-slate-500 hover:text-slate-700"
@@ -168,7 +205,23 @@ function TaskSubmissionsPanel({ groupId, task }: { groupId: string; task: GroupT
                 <p className="text-sm font-medium text-slate-800">{submission.student_name}</p>
                 <span className="text-xs text-slate-400">{formatDateTime(submission.updated_at)}</span>
               </div>
-              <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{submission.content}</p>
+              {submission.content && (
+                <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{submission.content}</p>
+              )}
+              {submission.file_name && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    downloadSubmissionFile(groupId, task.id, submission.id, submission.file_name as string)
+                  }
+                  className="mt-2 flex w-fit items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-brand-600 hover:underline"
+                >
+                  📎 {submission.file_name}
+                  {submission.file_size != null && (
+                    <span className="text-slate-400">({formatFileSize(submission.file_size)})</span>
+                  )}
+                </button>
+              )}
             </div>
           ))}
         </div>

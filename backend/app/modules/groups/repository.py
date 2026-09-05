@@ -92,19 +92,46 @@ def get_submission(db: Session, task_id: uuid.UUID, student_id: uuid.UUID) -> Gr
 
 
 def upsert_submission(
-    db: Session, *, task_id: uuid.UUID, student_id: uuid.UUID, content: str
+    db: Session,
+    *,
+    task_id: uuid.UUID,
+    student_id: uuid.UUID,
+    content: str,
+    file_name: str | None = None,
+    file_mime_type: str | None = None,
+    file_size: int | None = None,
+    file_data: bytes | None = None,
 ) -> GroupTaskSubmission:
     existing = get_submission(db, task_id, student_id)
     if existing is not None:
         existing.content = content
+        # A resubmission without a new file keeps whatever was already
+        # attached, rather than silently dropping it.
+        if file_data is not None:
+            existing.file_name = file_name
+            existing.file_mime_type = file_mime_type
+            existing.file_size = file_size
+            existing.file_data = file_data
         db.commit()
         db.refresh(existing)
         return existing
-    submission = GroupTaskSubmission(task_id=task_id, student_id=student_id, content=content)
+    submission = GroupTaskSubmission(
+        task_id=task_id,
+        student_id=student_id,
+        content=content,
+        file_name=file_name,
+        file_mime_type=file_mime_type,
+        file_size=file_size,
+        file_data=file_data,
+    )
     db.add(submission)
     db.commit()
     db.refresh(submission)
     return submission
+
+
+def get_submission_by_id(db: Session, submission_id: uuid.UUID) -> GroupTaskSubmission | None:
+    return db.get(GroupTaskSubmission, submission_id)
 
 
 def list_submissions_for_task(db: Session, task_id: uuid.UUID) -> list[GroupTaskSubmission]:

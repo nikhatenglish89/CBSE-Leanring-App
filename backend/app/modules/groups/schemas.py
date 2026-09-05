@@ -19,10 +19,6 @@ class GroupTaskCreateRequest(BaseModel):
     due_date: datetime | None = None
 
 
-class TaskSubmitRequest(BaseModel):
-    content: str = Field(min_length=1, max_length=4000)
-
-
 class GroupMemberOut(BaseModel):
     id: uuid.UUID
     full_name: str
@@ -38,6 +34,9 @@ class TaskSubmissionOut(BaseModel):
     student_id: uuid.UUID
     student_name: str
     content: str
+    file_name: str | None
+    file_mime_type: str | None
+    file_size: int | None
     created_at: datetime
     updated_at: datetime
 
@@ -48,6 +47,9 @@ class TaskSubmissionOut(BaseModel):
             student_id=student.id,
             student_name=student.full_name,
             content=submission.content,
+            file_name=submission.file_name,
+            file_mime_type=submission.file_mime_type,
+            file_size=submission.file_size,
             created_at=submission.created_at,
             updated_at=submission.updated_at,
         )

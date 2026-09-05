@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 
+from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import AppError
@@ -9,6 +10,20 @@ from app.modules.groups.models import Group, GroupTask, GroupTaskSubmission
 from app.modules.groups.schemas import GroupCreateRequest, GroupMemberOut, GroupTaskOut, TaskSubmissionOut
 from app.modules.users import repository as users_repo
 from app.modules.users.models import User
+
+# Kept small on purpose — files are stored as bytes in Postgres (see the
+# note in models.py), not in dedicated object storage.
+MAX_UPLOAD_BYTES = 8 * 1024 * 1024  # 8 MB
+
+ALLOWED_SUBMISSION_MIME_TYPES = {
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "text/plain",
+    "image/png",
+    "image/jpeg",
+    "image/webp",
+}
 
 
 def create_group(db: Session, teacher: User, payload: GroupCreateRequest) -> Group:
@@ -103,8 +118,14 @@ def _get_group_task(db: Session, group_id: uuid.UUID, task_id: uuid.UUID) -> Gro
     return task
 
 
-def submit_task(
-    db: Session, student: User, group_id: uuid.UUID, task_id: uuid.UUID, content: str
+async def submit_task(
+    db: Session,
+    student: User,
+    group_id: uuid.UUID,
+    task_id: uuid.UUID,
+    *,
+    content: str,
+    file: UploadFile | None,
 ) -> GroupTaskSubmission:
     # A non-member (including the owning teacher, who is never a "member")
     # gets the same 404 as a nonexistent group — consistent with every
@@ -112,7 +133,41 @@ def submit_task(
     if not _is_member(db, group_id, student.id):
         raise AppError("GROUP_NOT_FOUND", "Group not found.", 404)
     task = _get_group_task(db, group_id, task_id)
-    return groups_repo.upsert_submission(db, task_id=task.id, student_id=student.id, content=content)
+
+    file_name = file_mime_type = None
+    file_size = None
+    file_data = None
+    if file is not None and file.filename:
+        if file.content_type not in ALLOWED_SUBMISSION_MIME_TYPES:
+            raise AppError(
+                "UNSUPPORTED_FILE_TYPE",
+                "That file type isn't supported. Allowed: PDF, Word documents, text, and images.",
+                400,
+            )
+        file_data = await file.read()
+        if len(file_data) > MAX_UPLOAD_BYTES:
+            raise AppError(
+                "FILE_TOO_LARGE", f"Files must be under {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.", 400
+            )
+        if len(file_data) == 0:
+            raise AppError("EMPTY_FILE", "The uploaded file is empty.", 400)
+        file_name = file.filename
+        file_mime_type = file.content_type
+        file_size = len(file_data)
+
+    if not content.strip() and file_data is None:
+        raise AppError("EMPTY_SUBMISSION", "Add some text or attach a file before submitting.", 400)
+
+    return groups_repo.upsert_submission(
+        db,
+        task_id=task.id,
+        student_id=student.id,
+        content=content,
+        file_name=file_name,
+        file_mime_type=file_mime_type,
+        file_size=file_size,
+        file_data=file_data,
+    )
 
 
 def list_task_submissions(
@@ -126,3 +181,22 @@ def list_task_submissions(
         if student is not None:
             rows.append(TaskSubmissionOut.from_row(submission, student))
     return rows
+
+
+def get_submission_file(
+    db: Session, user: User, group_id: uuid.UUID, task_id: uuid.UUID, submission_id: uuid.UUID
+) -> GroupTaskSubmission:
+    group = groups_repo.get_group_by_id(db, group_id)
+    if group is None:
+        raise AppError("GROUP_NOT_FOUND", "Group not found.", 404)
+    task = _get_group_task(db, group.id, task_id)
+    submission = groups_repo.get_submission_by_id(db, submission_id)
+    if submission is None or submission.task_id != task.id:
+        raise AppError("SUBMISSION_NOT_FOUND", "Submission not found.", 404)
+
+    is_owner = group.teacher_id == user.id
+    if not is_owner and submission.student_id != user.id:
+        raise AppError("SUBMISSION_NOT_FOUND", "Submission not found.", 404)
+    if submission.file_data is None:
+        raise AppError("SUBMISSION_NOT_FOUND", "This submission has no attached file.", 404)
+    return submission

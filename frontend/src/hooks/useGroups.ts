@@ -79,15 +79,39 @@ export function useCreateGroupTask(groupId: string) {
 export function useSubmitTask(groupId: string, taskId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (content: string) => {
+    mutationFn: async ({ content, file }: { content: string; file?: File | null }) => {
+      const form = new FormData();
+      form.append("content", content);
+      if (file) {
+        form.append("file", file);
+      }
       const { data } = await api.post<ApiSuccess<TaskSubmission>>(
         `/groups/${groupId}/tasks/${taskId}/submit`,
-        { content }
+        form
       );
       return data.data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["group", groupId] }),
   });
+}
+
+export async function downloadSubmissionFile(
+  groupId: string,
+  taskId: string,
+  submissionId: string,
+  fileName: string
+) {
+  const response = await api.get(`/groups/${groupId}/tasks/${taskId}/submissions/${submissionId}/file`, {
+    responseType: "blob",
+  });
+  const url = URL.createObjectURL(response.data as Blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 export function useTaskSubmissions(groupId: string, taskId: string | null) {

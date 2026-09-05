@@ -165,7 +165,7 @@ def test_member_can_submit_task_and_resubmit_updates_it(client):
     submit = client.post(
         f"/api/v1/groups/{group_id}/tasks/{task_id}/submit",
         headers=student_headers,
-        json={"content": "First draft of my essay."},
+        data={"content": "First draft of my essay."},
     )
     assert submit.status_code == 201
     assert submit.json()["data"]["content"] == "First draft of my essay."
@@ -175,7 +175,7 @@ def test_member_can_submit_task_and_resubmit_updates_it(client):
     resubmit = client.post(
         f"/api/v1/groups/{group_id}/tasks/{task_id}/submit",
         headers=student_headers,
-        json={"content": "Final, polished essay."},
+        data={"content": "Final, polished essay."},
     )
     assert resubmit.status_code == 201
     assert resubmit.json()["data"]["id"] == submit.json()["data"]["id"]
@@ -197,7 +197,7 @@ def test_non_member_cannot_submit_task(client):
     ).json()["data"]["id"]
 
     resp = client.post(
-        f"/api/v1/groups/{group_id}/tasks/{task_id}/submit", headers=outsider_headers, json={"content": "Sneaky"}
+        f"/api/v1/groups/{group_id}/tasks/{task_id}/submit", headers=outsider_headers, data={"content": "Sneaky"}
     )
     assert resp.status_code == 404
     assert resp.json()["error"]["code"] == "GROUP_NOT_FOUND"
@@ -211,7 +211,7 @@ def test_teacher_cannot_submit_own_task(client):
     ).json()["data"]["id"]
 
     resp = client.post(
-        f"/api/v1/groups/{group_id}/tasks/{task_id}/submit", headers=teacher_headers, json={"content": "Nope"}
+        f"/api/v1/groups/{group_id}/tasks/{task_id}/submit", headers=teacher_headers, data={"content": "Nope"}
     )
     assert resp.status_code == 404
 
@@ -231,7 +231,7 @@ def test_teacher_can_view_submissions_for_their_task(client):
     ).json()["data"]["id"]
 
     client.post(
-        f"/api/v1/groups/{group_id}/tasks/{task_id}/submit", headers=student_a_headers, json={"content": "A's work"}
+        f"/api/v1/groups/{group_id}/tasks/{task_id}/submit", headers=student_a_headers, data={"content": "A's work"}
     )
     # student_b never submits
 
@@ -255,3 +255,121 @@ def test_other_teacher_cannot_view_submissions(client):
     resp = client.get(f"/api/v1/groups/{group_id}/tasks/{task_id}/submissions", headers=other_headers)
     assert resp.status_code == 404
     assert resp.json()["error"]["code"] == "GROUP_NOT_FOUND"
+
+
+def _setup_group_with_task(client, teacher_email, student_email):
+    teacher_headers = _verified_teacher(client, teacher_email)
+    student_headers = _auth_headers(client, student_email, "STUDENT")
+    student_id = _me(client, student_headers)["id"]
+    group_id = client.post("/api/v1/groups", headers=teacher_headers, json={"name": "File Group"}).json()["data"]["id"]
+    client.post(f"/api/v1/groups/{group_id}/members", headers=teacher_headers, json={"student_id": student_id})
+    task_id = client.post(
+        f"/api/v1/groups/{group_id}/tasks", headers=teacher_headers, json={"title": "Upload task"}
+    ).json()["data"]["id"]
+    return teacher_headers, student_headers, group_id, task_id
+
+
+def test_student_can_submit_task_with_file_and_teacher_can_download_it(client):
+    teacher_headers, student_headers, group_id, task_id = _setup_group_with_task(
+        client, "grp.teacher15a@example.com", "grp.student15a@example.com"
+    )
+
+    submit = client.post(
+        f"/api/v1/groups/{group_id}/tasks/{task_id}/submit",
+        headers=student_headers,
+        data={"content": "See attached PDF."},
+        files={"file": ("essay.pdf", b"%PDF-1.4 fake pdf bytes", "application/pdf")},
+    )
+    assert submit.status_code == 201
+    data = submit.json()["data"]
+    assert data["file_name"] == "essay.pdf"
+    assert data["file_mime_type"] == "application/pdf"
+    assert data["file_size"] == len(b"%PDF-1.4 fake pdf bytes")
+    submission_id = data["id"]
+
+    download = client.get(
+        f"/api/v1/groups/{group_id}/tasks/{task_id}/submissions/{submission_id}/file", headers=teacher_headers
+    )
+    assert download.status_code == 200
+    assert download.content == b"%PDF-1.4 fake pdf bytes"
+    assert download.headers["content-type"] == "application/pdf"
+    assert "essay.pdf" in download.headers["content-disposition"]
+
+
+def test_resubmitting_without_a_new_file_keeps_the_existing_one(client):
+    teacher_headers, student_headers, group_id, task_id = _setup_group_with_task(
+        client, "grp.teacher15b@example.com", "grp.student15b@example.com"
+    )
+    client.post(
+        f"/api/v1/groups/{group_id}/tasks/{task_id}/submit",
+        headers=student_headers,
+        data={"content": "Draft one."},
+        files={"file": ("draft.txt", b"draft contents", "text/plain")},
+    )
+    resubmit = client.post(
+        f"/api/v1/groups/{group_id}/tasks/{task_id}/submit",
+        headers=student_headers,
+        data={"content": "Draft two, text only edit."},
+    )
+    assert resubmit.status_code == 201
+    data = resubmit.json()["data"]
+    assert data["content"] == "Draft two, text only edit."
+    assert data["file_name"] == "draft.txt"
+
+
+def test_submit_task_rejects_unsupported_file_type(client):
+    _, student_headers, group_id, task_id = _setup_group_with_task(
+        client, "grp.teacher15c@example.com", "grp.student15c@example.com"
+    )
+    resp = client.post(
+        f"/api/v1/groups/{group_id}/tasks/{task_id}/submit",
+        headers=student_headers,
+        data={"content": "Here you go."},
+        files={"file": ("virus.exe", b"MZfakebytes", "application/x-msdownload")},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "UNSUPPORTED_FILE_TYPE"
+
+
+def test_submit_task_rejects_oversized_file(client):
+    _, student_headers, group_id, task_id = _setup_group_with_task(
+        client, "grp.teacher15d@example.com", "grp.student15d@example.com"
+    )
+    too_big = b"a" * (8 * 1024 * 1024 + 1)
+    resp = client.post(
+        f"/api/v1/groups/{group_id}/tasks/{task_id}/submit",
+        headers=student_headers,
+        data={"content": "Big file."},
+        files={"file": ("huge.txt", too_big, "text/plain")},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "FILE_TOO_LARGE"
+
+
+def test_student_cannot_download_another_students_submission_file(client):
+    teacher_headers = _verified_teacher(client, "grp.teacher15e@example.com")
+    student_a_headers = _auth_headers(client, "grp.student15ea@example.com", "STUDENT")
+    student_b_headers = _auth_headers(client, "grp.student15eb@example.com", "STUDENT")
+    student_a_id = _me(client, student_a_headers)["id"]
+    student_b_id = _me(client, student_b_headers)["id"]
+
+    group_id = client.post("/api/v1/groups", headers=teacher_headers, json={"name": "Two Files"}).json()["data"]["id"]
+    client.post(f"/api/v1/groups/{group_id}/members", headers=teacher_headers, json={"student_id": student_a_id})
+    client.post(f"/api/v1/groups/{group_id}/members", headers=teacher_headers, json={"student_id": student_b_id})
+    task_id = client.post(
+        f"/api/v1/groups/{group_id}/tasks", headers=teacher_headers, json={"title": "Shared task"}
+    ).json()["data"]["id"]
+
+    submit = client.post(
+        f"/api/v1/groups/{group_id}/tasks/{task_id}/submit",
+        headers=student_a_headers,
+        data={"content": "A's private work."},
+        files={"file": ("a.txt", b"a's secret", "text/plain")},
+    )
+    submission_id = submit.json()["data"]["id"]
+
+    resp = client.get(
+        f"/api/v1/groups/{group_id}/tasks/{task_id}/submissions/{submission_id}/file", headers=student_b_headers
+    )
+    assert resp.status_code == 404
+    assert resp.json()["error"]["code"] == "SUBMISSION_NOT_FOUND"
