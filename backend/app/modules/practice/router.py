@@ -60,6 +60,6 @@ def submit_practice_set(
     current_user: CurrentUser,
     db: Annotated[Session, Depends(get_db)],
 ) -> dict:
-    score, total, results = practice_service.submit_practice_set(db, practice_set_id, payload)
+    score, total, results = practice_service.submit_practice_set(db, practice_set_id, current_user.id, payload)
     data = PracticeSubmitResult(score=score, total=total, results=results).model_dump(mode="json")
     return success(data)

@@ -1,10 +1,11 @@
 import uuid
+from datetime import datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.modules.classes.models import Class
-from app.modules.practice.models import PracticeQuestion, PracticeSet
+from app.modules.practice.models import PracticeAttempt, PracticeQuestion, PracticeSet
 from app.modules.subjects.models import Subject
 
 _question_count_subq = (
@@ -77,3 +78,43 @@ def create_questions(db: Session, practice_set_id: uuid.UUID, questions: list[di
             )
         )
     db.commit()
+
+
+def create_attempt(
+    db: Session, *, student_id: uuid.UUID, practice_set_id: uuid.UUID, score: int, total: int
+) -> PracticeAttempt:
+    obj = PracticeAttempt(student_id=student_id, practice_set_id=practice_set_id, score=score, total=total)
+    db.add(obj)
+    db.commit()
+    db.refresh(obj)
+    return obj
+
+
+def list_attempts_for_student(
+    db: Session, student_id: uuid.UUID, limit: int | None = None
+) -> list[PracticeAttempt]:
+    stmt = (
+        select(PracticeAttempt)
+        .where(PracticeAttempt.student_id == student_id)
+        .order_by(PracticeAttempt.created_at.desc())
+    )
+    if limit is not None:
+        stmt = stmt.limit(limit)
+    return list(db.scalars(stmt))
+
+
+def attempt_stats_for_student(db: Session, student_id: uuid.UUID) -> tuple[int, float | None, datetime | None]:
+    """Returns (count, average_score_pct, last_attempt_at). Average is
+    computed in Python from the raw score/total pairs rather than in SQL,
+    since dialect-portable float division (SQLite vs. Postgres) isn't
+    worth the complexity at this data volume."""
+    rows = db.execute(
+        select(PracticeAttempt.score, PracticeAttempt.total, PracticeAttempt.created_at)
+        .where(PracticeAttempt.student_id == student_id)
+        .order_by(PracticeAttempt.created_at.desc())
+    ).all()
+    if not rows:
+        return 0, None, None
+    pct_values = [(score / total) * 100 for score, total, _ in rows if total > 0]
+    average = sum(pct_values) / len(pct_values) if pct_values else None
+    return len(rows), average, rows[0][2]

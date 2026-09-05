@@ -13,6 +13,8 @@ from app.modules.users.models import User
 from app.modules.users.schemas import (
     AdminCreatedUserOut,
     AdminCreateUserRequest,
+    LinkedParentOut,
+    LinkParentRequest,
     UserDetailOut,
     UserOut,
     UserUpdateRequest,
@@ -73,6 +75,7 @@ def create_user(
 def get_user(user_id: uuid.UUID, db: Annotated[Session, Depends(get_db)]) -> dict:
     detail = users_service.get_user_detail(db, user_id)
     is_verified = users_service.get_verification_status(db, detail["user"])
+    linked_parent = detail.get("linked_parent")
     data = UserDetailOut(
         **UserOut.from_user(detail["user"], is_verified=is_verified).model_dump(),
         current_class_id=detail.get("current_class_id"),
@@ -82,8 +85,25 @@ def get_user(user_id: uuid.UUID, db: Annotated[Session, Depends(get_db)]) -> dic
         teacher_verified=detail.get("teacher_verified"),
         student_verified=detail.get("student_verified"),
         course_count=detail.get("course_count"),
+        linked_parent=LinkedParentOut.model_validate(linked_parent, from_attributes=True)
+        if linked_parent
+        else None,
     ).model_dump(mode="json")
     return success(data)
+
+
+@router.post("/{student_id}/link-parent", dependencies=[Depends(require_permission("user:update"))])
+def link_parent(
+    student_id: uuid.UUID, payload: LinkParentRequest, db: Annotated[Session, Depends(get_db)]
+) -> dict:
+    users_service.link_parent_to_student(db, student_id, payload.parent_user_id)
+    return success({"linked": True})
+
+
+@router.post("/{student_id}/unlink-parent", dependencies=[Depends(require_permission("user:update"))])
+def unlink_parent(student_id: uuid.UUID, db: Annotated[Session, Depends(get_db)]) -> dict:
+    users_service.unlink_parent_from_student(db, student_id)
+    return success({"unlinked": True})
 
 
 @router.post("/{user_id}/verify", dependencies=[Depends(require_permission("user:update"))])

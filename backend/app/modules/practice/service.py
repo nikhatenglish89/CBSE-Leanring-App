@@ -24,7 +24,7 @@ def get_practice_set_detail(db: Session, practice_set_id: uuid.UUID):
 
 
 def submit_practice_set(
-    db: Session, practice_set_id: uuid.UUID, payload: PracticeSubmitRequest
+    db: Session, practice_set_id: uuid.UUID, student_id: uuid.UUID, payload: PracticeSubmitRequest
 ) -> tuple[int, int, list[PracticeQuestionResult]]:
     practice_set = practice_repo.get_practice_set_by_id(db, practice_set_id)
     if practice_set is None:
@@ -50,4 +50,9 @@ def submit_practice_set(
                 explanation=question.explanation,
             )
         )
+    # Persisted so a parent's progress view (and any future analytics) has
+    # real history instead of a result that only ever existed in-memory.
+    practice_repo.create_attempt(
+        db, student_id=student_id, practice_set_id=practice_set.id, score=score, total=len(questions)
+    )
     return score, len(questions), results

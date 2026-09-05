@@ -32,3 +32,16 @@ class PracticeQuestion(UUIDPKMixin, TimestampMixin, Base):
     correct_index: Mapped[int] = mapped_column(Integer)
     explanation: Mapped[str] = mapped_column(Text, default="")
     display_order: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class PracticeAttempt(UUIDPKMixin, TimestampMixin, Base):
+    """A completed submission of a practice set by a student — persisted
+    so there's real history to show (e.g. a parent's view of their
+    child's progress), not just a point-in-time score."""
+
+    __tablename__ = "practice_attempts"
+
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    practice_set_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("practice_sets.id"), index=True)
+    score: Mapped[int] = mapped_column(Integer)
+    total: Mapped[int] = mapped_column(Integer)

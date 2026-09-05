@@ -365,3 +365,60 @@ def test_verify_rejects_non_student_teacher_role(client):
     resp = client.post(f"/api/v1/users/{other_admin_id}/verify", headers=admin_headers)
     assert resp.status_code == 400
     assert resp.json()["error"]["code"] == "INVALID_ROLE"
+
+
+def test_admin_can_link_and_unlink_parent_to_student(client):
+    admin_headers = _admin_headers(client, email="admin.link1@example.com")
+    parent_headers = _auth_headers(client, "parent.link1@example.com", "PARENT")
+    student_headers = _auth_headers(client, "student.link1@example.com", "STUDENT")
+    parent_id = client.get("/api/v1/users/me", headers=parent_headers).json()["data"]["id"]
+    student_id = client.get("/api/v1/users/me", headers=student_headers).json()["data"]["id"]
+
+    link = client.post(
+        f"/api/v1/users/{student_id}/link-parent",
+        json={"parent_user_id": parent_id},
+        headers=admin_headers,
+    )
+    assert link.status_code == 200
+    assert link.json()["data"]["linked"] is True
+
+    detail = client.get(f"/api/v1/users/{student_id}", headers=admin_headers).json()["data"]
+    assert detail["linked_parent"]["id"] == parent_id
+    assert detail["linked_parent"]["email"] == "parent.link1@example.com"
+
+    unlink = client.post(f"/api/v1/users/{student_id}/unlink-parent", headers=admin_headers)
+    assert unlink.status_code == 200
+    assert unlink.json()["data"]["unlinked"] is True
+
+    detail_after = client.get(f"/api/v1/users/{student_id}", headers=admin_headers).json()["data"]
+    assert detail_after["linked_parent"] is None
+
+
+def test_link_parent_rejects_non_parent_role(client):
+    admin_headers = _admin_headers(client, email="admin.link2@example.com")
+    other_student_headers = _auth_headers(client, "notparent.link2@example.com", "STUDENT")
+    student_headers = _auth_headers(client, "student.link2@example.com", "STUDENT")
+    not_a_parent_id = client.get("/api/v1/users/me", headers=other_student_headers).json()["data"]["id"]
+    student_id = client.get("/api/v1/users/me", headers=student_headers).json()["data"]["id"]
+
+    resp = client.post(
+        f"/api/v1/users/{student_id}/link-parent",
+        json={"parent_user_id": not_a_parent_id},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 404
+    assert resp.json()["error"]["code"] == "PARENT_NOT_FOUND"
+
+
+def test_link_parent_requires_permission(client):
+    student_headers = _auth_headers(client, "student.link3@example.com", "STUDENT")
+    parent_headers = _auth_headers(client, "parent.link3@example.com", "PARENT")
+    parent_id = client.get("/api/v1/users/me", headers=parent_headers).json()["data"]["id"]
+    student_id = client.get("/api/v1/users/me", headers=student_headers).json()["data"]["id"]
+
+    resp = client.post(
+        f"/api/v1/users/{student_id}/link-parent",
+        json={"parent_user_id": parent_id},
+        headers=student_headers,
+    )
+    assert resp.status_code == 403

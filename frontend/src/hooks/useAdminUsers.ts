@@ -59,3 +59,23 @@ export function useVerifyUser() {
 export function useUnverifyUser() {
   return useSetUserVerified("unverify");
 }
+
+export function useLinkParent(studentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (parentUserId: string) => {
+      await api.post(`/users/${studentId}/link-parent`, { parent_user_id: parentUserId });
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-user-detail", studentId] }),
+  });
+}
+
+export function useUnlinkParent(studentId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      await api.post(`/users/${studentId}/unlink-parent`);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-user-detail", studentId] }),
+  });
+}

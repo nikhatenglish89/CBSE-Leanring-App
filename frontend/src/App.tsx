@@ -21,12 +21,12 @@ import { LessonDetailPage } from "./pages/LessonDetailPage";
 import { LoginPage } from "./pages/LoginPage";
 import { MessagesPage } from "./pages/MessagesPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { ParentDashboardPage } from "./pages/parent/ParentDashboardPage";
 import { PracticeSetPage } from "./pages/PracticeSetPage";
 import { PracticeTestsPage } from "./pages/PracticeTestsPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
-import { RoleDashboardPlaceholder } from "./pages/RoleDashboardPlaceholder";
 import { StudentCourseDetailPage } from "./pages/student/StudentCourseDetailPage";
 import { StudentDashboardPage } from "./pages/student/StudentDashboardPage";
 import { StudyMaterialsPage } from "./pages/StudyMaterialsPage";
@@ -191,13 +191,11 @@ export function App() {
                 </ProtectedRoute>
               }
             />
-            {/* Parent dashboard lands in a later phase; this placeholder
-                proves role-aware routing works end-to-end. */}
             <Route
               path="/parent"
               element={
                 <ProtectedRoute allow={["PARENT"]}>
-                  <RoleDashboardPlaceholder roleLabel="Parent" />
+                  <ParentDashboardPage />
                 </ProtectedRoute>
               }
             />

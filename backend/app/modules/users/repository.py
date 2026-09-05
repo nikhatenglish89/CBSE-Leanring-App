@@ -79,6 +79,28 @@ def get_student_profile_by_user_id(db: Session, user_id: uuid.UUID) -> StudentPr
     return db.scalar(select(StudentProfile).where(StudentProfile.user_id == user_id))
 
 
+def get_parent_profile_by_user_id(db: Session, user_id: uuid.UUID) -> ParentProfile | None:
+    return db.scalar(select(ParentProfile).where(ParentProfile.user_id == user_id))
+
+
+def get_parent_profile_by_id(db: Session, profile_id: uuid.UUID) -> ParentProfile | None:
+    return db.get(ParentProfile, profile_id)
+
+
+def list_students_for_parent_profile(db: Session, parent_profile_id: uuid.UUID) -> list[StudentProfile]:
+    stmt = select(StudentProfile).where(StudentProfile.parent_profile_id == parent_profile_id)
+    return list(db.scalars(stmt))
+
+
+def set_student_parent(
+    db: Session, profile: StudentProfile, parent_profile_id: uuid.UUID | None
+) -> StudentProfile:
+    profile.parent_profile_id = parent_profile_id
+    db.commit()
+    db.refresh(profile)
+    return profile
+
+
 def set_teacher_verified(db: Session, profile: TeacherProfile, verified: bool) -> TeacherProfile:
     profile.verified = verified
     db.commit()

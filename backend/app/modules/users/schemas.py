@@ -71,6 +71,12 @@ class AdminCreatedUserOut(UserOut):
         return cls(**base.model_dump(), temporary_password=temporary_password)
 
 
+class LinkedParentOut(BaseModel):
+    id: uuid.UUID
+    full_name: str
+    email: EmailStr
+
+
 class UserDetailOut(UserOut):
     """UserOut plus role-specific profile fields an admin can review."""
 
@@ -81,3 +87,8 @@ class UserDetailOut(UserOut):
     teacher_verified: bool | None = None
     student_verified: bool | None = None
     course_count: int | None = None
+    linked_parent: LinkedParentOut | None = None
+
+
+class LinkParentRequest(BaseModel):
+    parent_user_id: uuid.UUID

@@ -74,6 +74,36 @@ def test_submit_practice_set_scores_all_correct(client):
     assert all(r["is_correct"] for r in result["results"])
 
 
+def test_submit_practice_set_persists_an_attempt(client):
+    from app.modules.practice import repository as practice_repo
+
+    headers = _auth_headers(client, "student.practice.attempt@example.com", "STUDENT")
+    me = client.get("/api/v1/users/me", headers=headers).json()["data"]
+    class_id, subject_id = _get_seeded_class_and_subject(client, headers)
+    practice_set_id = client.get(
+        "/api/v1/practice-sets", params={"class_id": class_id, "subject_id": subject_id}, headers=headers
+    ).json()["data"][0]["id"]
+
+    db = TestingSessionLocal()
+    try:
+        questions = practice_repo.list_questions(db, uuid.UUID(practice_set_id))
+        answers = [{"question_id": str(q.id), "selected_index": q.correct_index} for q in questions[:5]]
+    finally:
+        db.close()
+
+    client.post(f"/api/v1/practice-sets/{practice_set_id}/submit", json={"answers": answers}, headers=headers)
+
+    db = TestingSessionLocal()
+    try:
+        attempts = practice_repo.list_attempts_for_student(db, uuid.UUID(me["id"]))
+        assert len(attempts) == 1
+        assert attempts[0].score == 5
+        assert attempts[0].total == 20
+        assert str(attempts[0].practice_set_id) == practice_set_id
+    finally:
+        db.close()
+
+
 def test_submit_practice_set_scores_wrong_and_missing_answers(client):
     headers = _auth_headers(client, "student.practice.wrong@example.com", "STUDENT")
     class_id, subject_id = _get_seeded_class_and_subject(client, headers)

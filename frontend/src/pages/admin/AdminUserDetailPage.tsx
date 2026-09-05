@@ -1,7 +1,15 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { Badge, Button, Card, CardSkeleton, useToast } from "../../components/ui";
-import { useAdminUserDetail, useUnverifyUser, useVerifyUser } from "../../hooks/useAdminUsers";
+import { Badge, Button, Card, CardSkeleton, Spinner, useToast } from "../../components/ui";
+import {
+  useAdminUserDetail,
+  useAdminUsers,
+  useLinkParent,
+  useUnlinkParent,
+  useUnverifyUser,
+  useVerifyUser,
+} from "../../hooks/useAdminUsers";
 import type { UserRole } from "../../types/users";
 
 const ROLE_LABEL: Partial<Record<UserRole, string>> = {
@@ -13,12 +21,70 @@ const ROLE_LABEL: Partial<Record<UserRole, string>> = {
 
 const APPROVAL_ROLES: UserRole[] = ["STUDENT", "TEACHER"];
 
+function LinkParentCard({ studentId }: { studentId: string }) {
+  const [search, setSearch] = useState("");
+  const { data: candidates, isLoading } = useAdminUsers({ role: "PARENT", search });
+  const linkParent = useLinkParent(studentId);
+  const { showToast } = useToast();
+
+  const onPick = async (parentUserId: string) => {
+    try {
+      await linkParent.mutateAsync(parentUserId);
+      setSearch("");
+      showToast("Parent linked — they'll now see this student's progress.", "success");
+    } catch {
+      showToast("Could not link that parent account.", "error");
+    }
+  };
+
+  return (
+    <Card className="flex flex-col gap-3">
+      <div>
+        <h2 className="text-lg font-semibold text-slate-900">Link a parent</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Linking connects this student's practice test progress to a parent's dashboard.
+        </p>
+      </div>
+      <input
+        placeholder="Search parent by name or email..."
+        value={search}
+        onChange={(event) => setSearch(event.target.value)}
+        className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
+      />
+      <div className="flex max-h-52 flex-col gap-1 overflow-y-auto">
+        {isLoading && <Spinner className="mx-auto my-2" />}
+        {!isLoading && candidates?.length === 0 && (
+          <p className="py-2 text-center text-sm text-slate-500">
+            {search ? "No matching parent accounts found." : "Type to search parent accounts."}
+          </p>
+        )}
+        {candidates?.map((candidate) => (
+          <button
+            key={candidate.id}
+            type="button"
+            onClick={() => onPick(candidate.id)}
+            disabled={linkParent.isPending}
+            className="flex items-center justify-between rounded-lg px-2 py-2 text-left text-sm hover:bg-slate-50 disabled:opacity-50"
+          >
+            <span>
+              <span className="font-medium text-slate-900">{candidate.full_name}</span>{" "}
+              <span className="text-slate-500">&middot; {candidate.email}</span>
+            </span>
+            <span className="text-xs font-medium text-brand-600">Link</span>
+          </button>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 export function AdminUserDetailPage() {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const { data: detail, isLoading } = useAdminUserDetail(userId);
   const verifyUser = useVerifyUser();
   const unverifyUser = useUnverifyUser();
+  const unlinkParent = useUnlinkParent(userId ?? "");
   const { showToast } = useToast();
 
   if (isLoading || !detail) {
@@ -44,6 +110,15 @@ export function AdminUserDetailPage() {
       showToast("Verification revoked.", "success");
     } catch {
       showToast("Could not update this account.", "error");
+    }
+  };
+
+  const onUnlinkParent = async () => {
+    try {
+      await unlinkParent.mutateAsync();
+      showToast("Parent unlinked.", "success");
+    } catch {
+      showToast("Could not unlink this parent.", "error");
     }
   };
 
@@ -115,6 +190,29 @@ export function AdminUserDetailPage() {
           </div>
         </Card>
       )}
+
+      {detail.role === "STUDENT" &&
+        (detail.linked_parent ? (
+          <Card className="flex flex-col gap-3">
+            <h2 className="text-lg font-semibold text-slate-900">Linked parent</h2>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-sm">
+                <p className="font-medium text-slate-800">{detail.linked_parent.full_name}</p>
+                <p className="text-slate-500">{detail.linked_parent.email}</p>
+              </div>
+              <Button
+                variant="secondary"
+                onClick={onUnlinkParent}
+                isLoading={unlinkParent.isPending}
+                className="w-fit"
+              >
+                Unlink
+              </Button>
+            </div>
+          </Card>
+        ) : (
+          <LinkParentCard studentId={detail.id} />
+        ))}
 
       {detail.role === "TEACHER" && (
         <Card className="flex flex-col gap-3">

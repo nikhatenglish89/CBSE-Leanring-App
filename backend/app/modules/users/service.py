@@ -84,6 +84,12 @@ def get_user_detail(db: Session, user_id: uuid.UUID) -> dict:
         detail["current_class_name"] = klass.name if klass else None
         detail["date_of_birth"] = profile.date_of_birth if profile else None
         detail["student_verified"] = profile.verified if profile else None
+        detail["linked_parent"] = None
+        if profile and profile.parent_profile_id:
+            parent_profile = users_repo.get_parent_profile_by_id(db, profile.parent_profile_id)
+            parent_user = users_repo.get_user_by_id(db, parent_profile.user_id) if parent_profile else None
+            if parent_user is not None:
+                detail["linked_parent"] = parent_user
     elif user.role.name == "TEACHER":
         profile = users_repo.get_teacher_profile_by_user_id(db, user.id)
         detail["bio"] = profile.bio if profile else None
@@ -126,3 +132,36 @@ def set_user_verified(db: Session, user_id: uuid.UUID, verified: bool) -> User:
         raise AppError("INVALID_ROLE", "Only Student and Teacher accounts can be verified.", 400)
 
     return user
+
+
+def link_parent_to_student(db: Session, student_id: uuid.UUID, parent_user_id: uuid.UUID) -> User:
+    student_user = users_repo.get_user_by_id(db, student_id)
+    if student_user is None or student_user.role.name != "STUDENT":
+        raise AppError("STUDENT_NOT_FOUND", "Student account not found.", 404)
+
+    parent_user = users_repo.get_user_by_id(db, parent_user_id)
+    if parent_user is None or parent_user.role.name != "PARENT":
+        raise AppError("PARENT_NOT_FOUND", "Parent account not found.", 404)
+
+    student_profile = users_repo.get_student_profile_by_user_id(db, student_user.id)
+    if student_profile is None:
+        raise AppError("PROFILE_NOT_FOUND", "No student profile found for this account.", 400)
+    parent_profile = users_repo.get_parent_profile_by_user_id(db, parent_user.id)
+    if parent_profile is None:
+        raise AppError("PROFILE_NOT_FOUND", "No parent profile found for this account.", 400)
+
+    users_repo.set_student_parent(db, student_profile, parent_profile.id)
+    return student_user
+
+
+def unlink_parent_from_student(db: Session, student_id: uuid.UUID) -> User:
+    student_user = users_repo.get_user_by_id(db, student_id)
+    if student_user is None or student_user.role.name != "STUDENT":
+        raise AppError("STUDENT_NOT_FOUND", "Student account not found.", 404)
+
+    student_profile = users_repo.get_student_profile_by_user_id(db, student_user.id)
+    if student_profile is None:
+        raise AppError("PROFILE_NOT_FOUND", "No student profile found for this account.", 400)
+
+    users_repo.set_student_parent(db, student_profile, None)
+    return student_user
