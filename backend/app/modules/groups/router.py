@@ -2,6 +2,7 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile, status
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
@@ -91,7 +92,26 @@ async def submit_task(
     content: Annotated[str, Form()] = "",
     file: Annotated[UploadFile | None, File()] = None,
 ) -> dict:
-    submission = await groups_service.submit_task(db, current_user, group_id, task_id, content=content, file=file)
+    # Only the file read needs the event loop (awaiting UploadFile.read());
+    # the DB work is dispatched to a thread so it can't stall other
+    # requests on this single-worker deployment. See the note on
+    # groups_service.submit_task.
+    has_file = file is not None and bool(file.filename)
+    file_data = await file.read() if has_file else None
+    file_name = file.filename if has_file else None
+    file_mime_type = file.content_type if has_file else None
+
+    submission = await run_in_threadpool(
+        groups_service.submit_task,
+        db,
+        current_user,
+        group_id,
+        task_id,
+        content=content,
+        file_name=file_name,
+        file_mime_type=file_mime_type,
+        file_data=file_data,
+    )
     return success(TaskSubmissionOut.from_row(submission, current_user).model_dump(mode="json"))
 
 

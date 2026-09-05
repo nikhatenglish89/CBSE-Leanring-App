@@ -1,7 +1,6 @@
 import uuid
 from datetime import datetime
 
-from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import AppError
@@ -118,15 +117,23 @@ def _get_group_task(db: Session, group_id: uuid.UUID, task_id: uuid.UUID) -> Gro
     return task
 
 
-async def submit_task(
+def submit_task(
     db: Session,
     student: User,
     group_id: uuid.UUID,
     task_id: uuid.UUID,
     *,
     content: str,
-    file: UploadFile | None,
+    file_name: str | None,
+    file_mime_type: str | None,
+    file_data: bytes | None,
 ) -> GroupTaskSubmission:
+    # Plain sync function run via run_in_threadpool from the router — the
+    # route itself is async (it has to await UploadFile.read()), but this
+    # function's DB calls are all blocking SQLAlchemy; running them directly
+    # on the event loop would stall every other request on Render's
+    # single-worker deployment for the duration of each DB round trip.
+    #
     # A non-member (including the owning teacher, who is never a "member")
     # gets the same 404 as a nonexistent group — consistent with every
     # other member-only action in this module.
@@ -134,26 +141,24 @@ async def submit_task(
         raise AppError("GROUP_NOT_FOUND", "Group not found.", 404)
     task = _get_group_task(db, group_id, task_id)
 
-    file_name = file_mime_type = None
     file_size = None
-    file_data = None
-    if file is not None and file.filename:
-        if file.content_type not in ALLOWED_SUBMISSION_MIME_TYPES:
+    if file_data is not None:
+        if file_mime_type not in ALLOWED_SUBMISSION_MIME_TYPES:
             raise AppError(
                 "UNSUPPORTED_FILE_TYPE",
                 "That file type isn't supported. Allowed: PDF, Word documents, text, and images.",
                 400,
             )
-        file_data = await file.read()
         if len(file_data) > MAX_UPLOAD_BYTES:
             raise AppError(
                 "FILE_TOO_LARGE", f"Files must be under {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.", 400
             )
         if len(file_data) == 0:
             raise AppError("EMPTY_FILE", "The uploaded file is empty.", 400)
-        file_name = file.filename
-        file_mime_type = file.content_type
         file_size = len(file_data)
+    else:
+        file_name = None
+        file_mime_type = None
 
     if not content.strip() and file_data is None:
         raise AppError("EMPTY_SUBMISSION", "Add some text or attach a file before submitting.", 400)
