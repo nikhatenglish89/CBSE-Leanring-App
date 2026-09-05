@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { api } from "../lib/api";
 import type { ApiSuccess } from "../types/auth";
-import type { Group, GroupDetail } from "../types/groups";
+import type { Group, GroupDetail, TaskSubmission } from "../types/groups";
 
 export function useMyGroups() {
   return useQuery({
@@ -73,5 +73,32 @@ export function useCreateGroupTask(groupId: string) {
       queryClient.invalidateQueries({ queryKey: ["group", groupId] });
       queryClient.invalidateQueries({ queryKey: ["my-groups"] });
     },
+  });
+}
+
+export function useSubmitTask(groupId: string, taskId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (content: string) => {
+      const { data } = await api.post<ApiSuccess<TaskSubmission>>(
+        `/groups/${groupId}/tasks/${taskId}/submit`,
+        { content }
+      );
+      return data.data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["group", groupId] }),
+  });
+}
+
+export function useTaskSubmissions(groupId: string, taskId: string | null) {
+  return useQuery({
+    queryKey: ["task-submissions", groupId, taskId],
+    queryFn: async () => {
+      const { data } = await api.get<ApiSuccess<TaskSubmission[]>>(
+        `/groups/${groupId}/tasks/${taskId}/submissions`
+      );
+      return data.data;
+    },
+    enabled: Boolean(taskId),
   });
 }

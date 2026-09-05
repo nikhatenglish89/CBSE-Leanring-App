@@ -4,12 +4,23 @@ export interface GroupMember {
   email: string;
 }
 
+export interface TaskSubmission {
+  id: string;
+  student_id: string;
+  student_name: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface GroupTask {
   id: string;
   title: string;
   description: string;
   due_date: string | null;
   created_at: string;
+  submission_count: number;
+  my_submission: TaskSubmission | null;
 }
 
 export interface Group {

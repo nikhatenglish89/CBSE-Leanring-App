@@ -33,3 +33,15 @@ class GroupTask(UUIDPKMixin, TimestampMixin, Base):
     title: Mapped[str] = mapped_column(String(200))
     description: Mapped[str] = mapped_column(Text, default="")
     due_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+
+
+class GroupTaskSubmission(UUIDPKMixin, TimestampMixin, Base):
+    """A student's submitted work for a task — at most one per student per
+    task; resubmitting replaces the content rather than creating a new row."""
+
+    __tablename__ = "group_task_submissions"
+    __table_args__ = (UniqueConstraint("task_id", "student_id", name="uq_task_submissions_task_student"),)
+
+    task_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("group_tasks.id"), index=True)
+    student_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    content: Mapped[str] = mapped_column(Text)

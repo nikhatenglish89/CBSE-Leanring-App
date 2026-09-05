@@ -14,6 +14,8 @@ from app.modules.groups.schemas import (
     GroupOut,
     GroupTaskCreateRequest,
     GroupTaskOut,
+    TaskSubmissionOut,
+    TaskSubmitRequest,
 )
 from app.schemas.envelope import success
 
@@ -78,3 +80,23 @@ def create_task(
         db, current_user, group_id, title=payload.title, description=payload.description, due_date=payload.due_date
     )
     return success(GroupTaskOut.from_row(task).model_dump(mode="json"))
+
+
+@router.post("/{group_id}/tasks/{task_id}/submit", status_code=status.HTTP_201_CREATED)
+def submit_task(
+    group_id: uuid.UUID,
+    task_id: uuid.UUID,
+    payload: TaskSubmitRequest,
+    current_user: CurrentUser,
+    db: Annotated[Session, Depends(get_db)],
+) -> dict:
+    submission = groups_service.submit_task(db, current_user, group_id, task_id, payload.content)
+    return success(TaskSubmissionOut.from_row(submission, current_user).model_dump(mode="json"))
+
+
+@router.get("/{group_id}/tasks/{task_id}/submissions")
+def list_task_submissions(
+    group_id: uuid.UUID, task_id: uuid.UUID, current_user: CurrentUser, db: Annotated[Session, Depends(get_db)]
+) -> dict:
+    rows = groups_service.list_task_submissions(db, current_user, group_id, task_id)
+    return success([r.model_dump(mode="json") for r in rows])

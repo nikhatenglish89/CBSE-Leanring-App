@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import axios from "axios";
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
 import { z } from "zod";
@@ -8,9 +8,17 @@ import { z } from "zod";
 import { PageHeader } from "../components/layout/PageHeader";
 import { Badge, Button, Card, CardSkeleton, EmptyState, Spinner, Textarea, useToast } from "../components/ui";
 import { useAuth } from "../hooks/useAuth";
-import { useAddGroupMember, useCreateGroupTask, useGroupDetail, useRemoveGroupMember } from "../hooks/useGroups";
+import {
+  useAddGroupMember,
+  useCreateGroupTask,
+  useGroupDetail,
+  useRemoveGroupMember,
+  useSubmitTask,
+  useTaskSubmissions,
+} from "../hooks/useGroups";
 import { useMessageableUsers } from "../hooks/useMessaging";
 import { formatDateTime } from "../lib/format";
+import type { GroupTask } from "../types/groups";
 
 const taskSchema = z.object({
   title: z.string().min(1, "Give the task a title").max(200),
@@ -64,6 +72,107 @@ function AddStudentPanel({ groupId, memberIds }: { groupId: string; memberIds: s
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+function TaskSubmissionForm({ groupId, task }: { groupId: string; task: GroupTask }) {
+  const submitTask = useSubmitTask(groupId, task.id);
+  const { showToast } = useToast();
+  const [content, setContent] = useState(task.my_submission?.content ?? "");
+  const [isEditing, setIsEditing] = useState(!task.my_submission);
+
+  const onSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    const trimmed = content.trim();
+    if (!trimmed) return;
+    try {
+      await submitTask.mutateAsync(trimmed);
+      setIsEditing(false);
+      showToast(task.my_submission ? "Submission updated." : "Task submitted.", "success");
+    } catch {
+      showToast("Could not submit your work.", "error");
+    }
+  };
+
+  if (!isEditing && task.my_submission) {
+    return (
+      <div className="mt-2 flex flex-col gap-2 rounded-lg bg-emerald-50 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Badge tone="success">Submitted {formatDateTime(task.my_submission.updated_at)}</Badge>
+          <button
+            type="button"
+            onClick={() => setIsEditing(true)}
+            className="text-xs font-medium text-brand-600 hover:underline"
+          >
+            Edit submission
+          </button>
+        </div>
+        <p className="whitespace-pre-wrap text-sm text-slate-700">{task.my_submission.content}</p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="mt-2 flex flex-col gap-2">
+      <textarea
+        value={content}
+        onChange={(event) => setContent(event.target.value)}
+        rows={3}
+        placeholder="Type your answer or notes here..."
+        className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-brand-600 focus:ring-2 focus:ring-brand-100"
+      />
+      <div className="flex items-center gap-3">
+        <Button type="submit" isLoading={submitTask.isPending} disabled={!content.trim()} className="self-start">
+          {task.my_submission ? "Update submission" : "Submit"}
+        </Button>
+        {task.my_submission && (
+          <button
+            type="button"
+            onClick={() => {
+              setContent(task.my_submission?.content ?? "");
+              setIsEditing(false);
+            }}
+            className="text-sm text-slate-500 hover:text-slate-700"
+          >
+            Cancel
+          </button>
+        )}
+      </div>
+    </form>
+  );
+}
+
+function TaskSubmissionsPanel({ groupId, task }: { groupId: string; task: GroupTask }) {
+  const [show, setShow] = useState(false);
+  const { data: submissions, isLoading } = useTaskSubmissions(groupId, show ? task.id : null);
+
+  return (
+    <div className="mt-2">
+      <button
+        type="button"
+        onClick={() => setShow((v) => !v)}
+        className="text-xs font-medium text-brand-600 hover:underline"
+      >
+        {show ? "Hide submissions" : `View submissions (${task.submission_count})`}
+      </button>
+      {show && (
+        <div className="mt-2 flex flex-col gap-2">
+          {isLoading && <Spinner className="mx-auto my-2" />}
+          {!isLoading && submissions?.length === 0 && (
+            <p className="text-sm text-slate-500">No submissions yet.</p>
+          )}
+          {submissions?.map((submission) => (
+            <div key={submission.id} className="rounded-lg border border-slate-200 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-medium text-slate-800">{submission.student_name}</p>
+                <span className="text-xs text-slate-400">{formatDateTime(submission.updated_at)}</span>
+              </div>
+              <p className="mt-1 whitespace-pre-wrap text-sm text-slate-600">{submission.content}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -202,6 +311,11 @@ export function GroupDetailPage() {
                     {task.due_date && <Badge tone="warning">Due {formatDateTime(task.due_date)}</Badge>}
                   </div>
                   {task.description && <p className="whitespace-pre-wrap text-sm text-slate-600">{task.description}</p>}
+                  {isOwner ? (
+                    <TaskSubmissionsPanel groupId={group.id} task={task} />
+                  ) : (
+                    <TaskSubmissionForm groupId={group.id} task={task} />
+                  )}
                 </li>
               ))}
             </ul>

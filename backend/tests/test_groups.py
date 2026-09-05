@@ -149,3 +149,109 @@ def test_cannot_add_a_non_student_as_member(client):
     resp = client.post(f"/api/v1/groups/{group_id}/members", headers=teacher_headers, json={"student_id": other_teacher_id})
     assert resp.status_code == 404
     assert resp.json()["error"]["code"] == "STUDENT_NOT_FOUND"
+
+
+def test_member_can_submit_task_and_resubmit_updates_it(client):
+    teacher_headers = _verified_teacher(client, "grp.teacher10@example.com")
+    student_headers = _auth_headers(client, "grp.student10@example.com", "STUDENT")
+    student_id = _me(client, student_headers)["id"]
+
+    group_id = client.post("/api/v1/groups", headers=teacher_headers, json={"name": "Homework Group"}).json()["data"]["id"]
+    client.post(f"/api/v1/groups/{group_id}/members", headers=teacher_headers, json={"student_id": student_id})
+    task_id = client.post(
+        f"/api/v1/groups/{group_id}/tasks", headers=teacher_headers, json={"title": "Essay on gravity"}
+    ).json()["data"]["id"]
+
+    submit = client.post(
+        f"/api/v1/groups/{group_id}/tasks/{task_id}/submit",
+        headers=student_headers,
+        json={"content": "First draft of my essay."},
+    )
+    assert submit.status_code == 201
+    assert submit.json()["data"]["content"] == "First draft of my essay."
+    assert submit.json()["data"]["student_id"] == student_id
+
+    # Resubmitting updates the same row rather than creating a new one.
+    resubmit = client.post(
+        f"/api/v1/groups/{group_id}/tasks/{task_id}/submit",
+        headers=student_headers,
+        json={"content": "Final, polished essay."},
+    )
+    assert resubmit.status_code == 201
+    assert resubmit.json()["data"]["id"] == submit.json()["data"]["id"]
+    assert resubmit.json()["data"]["content"] == "Final, polished essay."
+
+    detail = client.get(f"/api/v1/groups/{group_id}", headers=student_headers).json()["data"]
+    task = detail["tasks"][0]
+    assert task["submission_count"] == 1
+    assert task["my_submission"]["content"] == "Final, polished essay."
+
+
+def test_non_member_cannot_submit_task(client):
+    teacher_headers = _verified_teacher(client, "grp.teacher11@example.com")
+    outsider_headers = _auth_headers(client, "grp.outsider11@example.com", "STUDENT")
+
+    group_id = client.post("/api/v1/groups", headers=teacher_headers, json={"name": "Closed Group"}).json()["data"]["id"]
+    task_id = client.post(
+        f"/api/v1/groups/{group_id}/tasks", headers=teacher_headers, json={"title": "Members only"}
+    ).json()["data"]["id"]
+
+    resp = client.post(
+        f"/api/v1/groups/{group_id}/tasks/{task_id}/submit", headers=outsider_headers, json={"content": "Sneaky"}
+    )
+    assert resp.status_code == 404
+    assert resp.json()["error"]["code"] == "GROUP_NOT_FOUND"
+
+
+def test_teacher_cannot_submit_own_task(client):
+    teacher_headers = _verified_teacher(client, "grp.teacher12@example.com")
+    group_id = client.post("/api/v1/groups", headers=teacher_headers, json={"name": "Solo Group"}).json()["data"]["id"]
+    task_id = client.post(
+        f"/api/v1/groups/{group_id}/tasks", headers=teacher_headers, json={"title": "Not a student"}
+    ).json()["data"]["id"]
+
+    resp = client.post(
+        f"/api/v1/groups/{group_id}/tasks/{task_id}/submit", headers=teacher_headers, json={"content": "Nope"}
+    )
+    assert resp.status_code == 404
+
+
+def test_teacher_can_view_submissions_for_their_task(client):
+    teacher_headers = _verified_teacher(client, "grp.teacher13@example.com")
+    student_a_headers = _auth_headers(client, "grp.student13a@example.com", "STUDENT")
+    student_b_headers = _auth_headers(client, "grp.student13b@example.com", "STUDENT")
+    student_a_id = _me(client, student_a_headers)["id"]
+    student_b_id = _me(client, student_b_headers)["id"]
+
+    group_id = client.post("/api/v1/groups", headers=teacher_headers, json={"name": "Two Students"}).json()["data"]["id"]
+    client.post(f"/api/v1/groups/{group_id}/members", headers=teacher_headers, json={"student_id": student_a_id})
+    client.post(f"/api/v1/groups/{group_id}/members", headers=teacher_headers, json={"student_id": student_b_id})
+    task_id = client.post(
+        f"/api/v1/groups/{group_id}/tasks", headers=teacher_headers, json={"title": "Group task"}
+    ).json()["data"]["id"]
+
+    client.post(
+        f"/api/v1/groups/{group_id}/tasks/{task_id}/submit", headers=student_a_headers, json={"content": "A's work"}
+    )
+    # student_b never submits
+
+    submissions = client.get(
+        f"/api/v1/groups/{group_id}/tasks/{task_id}/submissions", headers=teacher_headers
+    ).json()["data"]
+    assert len(submissions) == 1
+    assert submissions[0]["student_id"] == student_a_id
+    assert submissions[0]["content"] == "A's work"
+
+
+def test_other_teacher_cannot_view_submissions(client):
+    owner_headers = _verified_teacher(client, "grp.teacher14a@example.com")
+    other_headers = _verified_teacher(client, "grp.teacher14b@example.com")
+
+    group_id = client.post("/api/v1/groups", headers=owner_headers, json={"name": "Private Group"}).json()["data"]["id"]
+    task_id = client.post(
+        f"/api/v1/groups/{group_id}/tasks", headers=owner_headers, json={"title": "Private task"}
+    ).json()["data"]["id"]
+
+    resp = client.get(f"/api/v1/groups/{group_id}/tasks/{task_id}/submissions", headers=other_headers)
+    assert resp.status_code == 404
+    assert resp.json()["error"]["code"] == "GROUP_NOT_FOUND"

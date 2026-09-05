@@ -19,6 +19,10 @@ class GroupTaskCreateRequest(BaseModel):
     due_date: datetime | None = None
 
 
+class TaskSubmitRequest(BaseModel):
+    content: str = Field(min_length=1, max_length=4000)
+
+
 class GroupMemberOut(BaseModel):
     id: uuid.UUID
     full_name: str
@@ -29,21 +33,50 @@ class GroupMemberOut(BaseModel):
         return cls(id=student.id, full_name=student.full_name, email=student.email)
 
 
+class TaskSubmissionOut(BaseModel):
+    id: uuid.UUID
+    student_id: uuid.UUID
+    student_name: str
+    content: str
+    created_at: datetime
+    updated_at: datetime
+
+    @classmethod
+    def from_row(cls, submission, student) -> "TaskSubmissionOut":
+        return cls(
+            id=submission.id,
+            student_id=student.id,
+            student_name=student.full_name,
+            content=submission.content,
+            created_at=submission.created_at,
+            updated_at=submission.updated_at,
+        )
+
+
 class GroupTaskOut(BaseModel):
     id: uuid.UUID
     title: str
     description: str
     due_date: datetime | None
     created_at: datetime
+    # Populated by get_group_detail_row: total submissions (meaningful to
+    # the owning teacher) and the viewing student's own submission, if any
+    # (always None for a teacher, who never has one).
+    submission_count: int = 0
+    my_submission: TaskSubmissionOut | None = None
 
     @classmethod
-    def from_row(cls, task) -> "GroupTaskOut":
+    def from_row(
+        cls, task, *, submission_count: int = 0, my_submission: TaskSubmissionOut | None = None
+    ) -> "GroupTaskOut":
         return cls(
             id=task.id,
             title=task.title,
             description=task.description,
             due_date=task.due_date,
             created_at=task.created_at,
+            submission_count=submission_count,
+            my_submission=my_submission,
         )
 
 
