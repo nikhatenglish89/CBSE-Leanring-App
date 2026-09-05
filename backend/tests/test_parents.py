@@ -2,7 +2,7 @@ import uuid
 
 from tests.conftest import TestingSessionLocal
 from tests.test_admin_users import _admin_headers
-from tests.test_curriculum import _auth_headers, _get_seeded_class_and_subject
+from tests.test_curriculum import _auth_headers, _get_seeded_class_and_subject, _verify_teacher_for_headers
 
 
 def _me(client, headers):
@@ -97,3 +97,60 @@ def test_unlinking_removes_child_from_parent_view(client):
     unlink = client.post(f"/api/v1/users/{student_id}/unlink-parent", headers=admin_headers)
     assert unlink.status_code == 200
     assert client.get("/api/v1/parents/children", headers=parent_headers).json()["data"] == []
+
+
+def test_parent_sees_tasks_assigned_via_group(client):
+    admin_headers = _admin_headers(client, email="admin.parents3@example.com")
+    parent_headers = _auth_headers(client, "parent.tasks@example.com", "PARENT")
+    student_headers = _auth_headers(client, "student.tasks@example.com", "STUDENT")
+    teacher_headers = _auth_headers(client, "teacher.tasks@example.com", "TEACHER")
+    _verify_teacher_for_headers(client, teacher_headers)
+
+    parent_id = _me(client, parent_headers)["id"]
+    student_id = _me(client, student_headers)["id"]
+    _link(client, admin_headers, student_id, parent_id)
+
+    group = client.post(
+        "/api/v1/groups", headers=teacher_headers, json={"name": "Board Prep Batch"}
+    ).json()["data"]
+    client.post(
+        f"/api/v1/groups/{group['id']}/members", headers=teacher_headers, json={"student_id": student_id}
+    )
+    client.post(
+        f"/api/v1/groups/{group['id']}/tasks",
+        headers=teacher_headers,
+        json={"title": "Solve Chapter 6 worksheet", "description": "Q1-Q10"},
+    )
+
+    resp = client.get("/api/v1/parents/children", headers=parent_headers)
+    assert resp.status_code == 200
+    child = resp.json()["data"][0]
+    assert len(child["assigned_tasks"]) == 1
+    task = child["assigned_tasks"][0]
+    assert task["title"] == "Solve Chapter 6 worksheet"
+    assert task["group_name"] == "Board Prep Batch"
+    assert task["teacher_name"] == "Test User"
+
+
+def test_parent_does_not_see_tasks_from_unrelated_groups(client):
+    admin_headers = _admin_headers(client, email="admin.parents4@example.com")
+    parent_headers = _auth_headers(client, "parent.notasks@example.com", "PARENT")
+    student_headers = _auth_headers(client, "student.notasks@example.com", "STUDENT")
+    teacher_headers = _auth_headers(client, "teacher.notasks@example.com", "TEACHER")
+    _verify_teacher_for_headers(client, teacher_headers)
+
+    parent_id = _me(client, parent_headers)["id"]
+    student_id = _me(client, student_headers)["id"]
+    _link(client, admin_headers, student_id, parent_id)
+
+    # A group the student was never added to.
+    group = client.post(
+        "/api/v1/groups", headers=teacher_headers, json={"name": "Someone Else's Group"}
+    ).json()["data"]
+    client.post(
+        f"/api/v1/groups/{group['id']}/tasks", headers=teacher_headers, json={"title": "Not for this student"}
+    )
+
+    resp = client.get("/api/v1/parents/children", headers=parent_headers)
+    child = resp.json()["data"][0]
+    assert child["assigned_tasks"] == []

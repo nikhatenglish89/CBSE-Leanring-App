@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
 
 from app.modules.classes import repository as classes_repo
-from app.modules.parents.schemas import ChildProgressOut, PracticeAttemptOut
+from app.modules.groups import repository as groups_repo
+from app.modules.parents.schemas import ChildProgressOut, ChildTaskOut, PracticeAttemptOut
 from app.modules.practice import repository as practice_repo
 from app.modules.subjects import repository as subjects_repo
 from app.modules.users import repository as users_repo
@@ -23,6 +24,29 @@ def _attempt_out(db: Session, attempt) -> PracticeAttemptOut:
         total=attempt.total,
         created_at=attempt.created_at,
     )
+
+
+def _assigned_tasks(db: Session, student_id) -> list[ChildTaskOut]:
+    """Tasks a teacher assigned via any group the student belongs to —
+    upcoming (soonest due date) first, then undated tasks newest-first."""
+    tasks: list[ChildTaskOut] = []
+    for group in groups_repo.list_groups_for_student(db, student_id):
+        teacher = users_repo.get_user_by_id(db, group.teacher_id)
+        for task in groups_repo.list_tasks(db, group.id):
+            tasks.append(
+                ChildTaskOut(
+                    id=task.id,
+                    title=task.title,
+                    description=task.description,
+                    due_date=task.due_date,
+                    group_name=group.name,
+                    teacher_name=teacher.full_name if teacher else "",
+                    created_at=task.created_at,
+                )
+            )
+    dated = sorted((t for t in tasks if t.due_date is not None), key=lambda t: t.due_date)
+    undated = sorted((t for t in tasks if t.due_date is None), key=lambda t: t.created_at, reverse=True)
+    return dated + undated
 
 
 def list_children_progress(db: Session, parent_user: User) -> list[ChildProgressOut]:
@@ -51,6 +75,7 @@ def list_children_progress(db: Session, parent_user: User) -> list[ChildProgress
                 average_score_pct=average_score_pct,
                 last_activity_at=last_activity_at,
                 recent_attempts=[_attempt_out(db, a) for a in recent],
+                assigned_tasks=_assigned_tasks(db, student_user.id),
             )
         )
     rows.sort(key=lambda r: r.full_name)

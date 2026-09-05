@@ -14,6 +14,16 @@ class PracticeAttemptOut(BaseModel):
     created_at: datetime
 
 
+class ChildTaskOut(BaseModel):
+    id: uuid.UUID
+    title: str
+    description: str
+    due_date: datetime | None
+    group_name: str
+    teacher_name: str
+    created_at: datetime
+
+
 class ChildProgressOut(BaseModel):
     id: uuid.UUID
     full_name: str
@@ -23,3 +33,4 @@ class ChildProgressOut(BaseModel):
     average_score_pct: float | None
     last_activity_at: datetime | None
     recent_attempts: list[PracticeAttemptOut]
+    assigned_tasks: list[ChildTaskOut]

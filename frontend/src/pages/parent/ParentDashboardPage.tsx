@@ -11,6 +11,10 @@ function scoreTone(pct: number): "success" | "warning" | "rose" {
   return "rose";
 }
 
+function isOverdue(dueDate: string | null): boolean {
+  return dueDate !== null && new Date(dueDate).getTime() < Date.now();
+}
+
 function ChildCard({ child }: { child: ChildProgress }) {
   const hasScore = child.average_score_pct !== null;
 
@@ -72,6 +76,34 @@ function ChildCard({ child }: { child: ChildProgress }) {
           </ul>
         )}
       </div>
+
+      <div>
+        <h3 className="mb-2 text-sm font-semibold text-slate-700">Tasks assigned by teachers</h3>
+        {child.assigned_tasks.length === 0 ? (
+          <p className="text-sm text-slate-500">No tasks assigned yet.</p>
+        ) : (
+          <ul className="flex flex-col divide-y divide-slate-100 overflow-hidden rounded-lg border border-slate-200">
+            {child.assigned_tasks.map((task) => (
+              <li key={task.id} className="flex flex-col gap-1 px-4 py-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-slate-800">{task.title}</p>
+                  {task.due_date && (
+                    <Badge tone={isOverdue(task.due_date) ? "rose" : "warning"}>
+                      {isOverdue(task.due_date) ? "Overdue" : "Due"} {formatDateTime(task.due_date)}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500">
+                  {task.group_name} &middot; assigned by {task.teacher_name}
+                </p>
+                {task.description && (
+                  <p className="whitespace-pre-wrap text-sm text-slate-600">{task.description}</p>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </Card>
   );
 }
@@ -86,7 +118,7 @@ export function ParentDashboardPage() {
         <PageHeader
           eyebrow="Parent"
           title={`Welcome back, ${user?.full_name?.split(" ")[0] ?? "there"}`}
-          subtitle="Live progress for every child linked to your account."
+          subtitle="Live test scores and assigned tasks for every child linked to your account."
         />
         <span className="flex items-center gap-1.5 self-start rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" aria-hidden="true" />
@@ -113,7 +145,7 @@ export function ParentDashboardPage() {
         <EmptyState
           icon="👪"
           title="No children linked yet"
-          description="Ask an admin to connect your account to your child's — once linked, their practice test progress will show up here automatically."
+          description="Ask an admin to connect your account to your child's — once linked, their practice test scores and any tasks their teachers assign will show up here automatically."
         />
       )}
     </div>
