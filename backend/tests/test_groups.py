@@ -373,3 +373,46 @@ def test_student_cannot_download_another_students_submission_file(client):
     )
     assert resp.status_code == 404
     assert resp.json()["error"]["code"] == "SUBMISSION_NOT_FOUND"
+
+
+def test_group_detail_with_many_members_and_tasks_reports_correct_counts(client):
+    # Regression test for the batched-query rewrite of get_group_detail_row:
+    # a class-sized group used to make one DB round trip per member and two
+    # per task, which made a real class feel like the page had hung.
+    teacher_headers = _verified_teacher(client, "grp.teacher16@example.com")
+    student_headers = [_auth_headers(client, f"grp.student16{i}@example.com", "STUDENT") for i in range(5)]
+    student_ids = [_me(client, h)["id"] for h in student_headers]
+
+    group_id = client.post("/api/v1/groups", headers=teacher_headers, json={"name": "Class VI Group A"}).json()["data"]["id"]
+    for sid in student_ids:
+        client.post(f"/api/v1/groups/{group_id}/members", headers=teacher_headers, json={"student_id": sid})
+
+    task_ids = [
+        client.post(f"/api/v1/groups/{group_id}/tasks", headers=teacher_headers, json={"title": f"Task {i}"}).json()[
+            "data"
+        ]["id"]
+        for i in range(3)
+    ]
+
+    # Students 0-2 submit task 0; only student 0 submits task 1; nobody submits task 2.
+    for sid, headers in list(zip(student_ids, student_headers))[:3]:
+        client.post(
+            f"/api/v1/groups/{group_id}/tasks/{task_ids[0]}/submit", headers=headers, data={"content": f"work by {sid}"}
+        )
+    client.post(f"/api/v1/groups/{group_id}/tasks/{task_ids[1]}/submit", headers=student_headers[0], data={"content": "solo"})
+
+    teacher_view = client.get(f"/api/v1/groups/{group_id}", headers=teacher_headers).json()["data"]
+    assert len(teacher_view["members"]) == 5
+    assert {m["id"] for m in teacher_view["members"]} == set(student_ids)
+    counts_by_title = {t["title"]: t["submission_count"] for t in teacher_view["tasks"]}
+    assert counts_by_title == {"Task 0": 3, "Task 1": 1, "Task 2": 0}
+    assert all(t["my_submission"] is None for t in teacher_view["tasks"])
+
+    student0_view = client.get(f"/api/v1/groups/{group_id}", headers=student_headers[0]).json()["data"]
+    submissions_by_title = {t["title"]: t["my_submission"] for t in student0_view["tasks"]}
+    assert submissions_by_title["Task 0"]["content"] == f"work by {student_ids[0]}"
+    assert submissions_by_title["Task 1"]["content"] == "solo"
+    assert submissions_by_title["Task 2"] is None
+
+    student3_view = client.get(f"/api/v1/groups/{group_id}", headers=student_headers[3]).json()["data"]
+    assert all(t["my_submission"] is None for t in student3_view["tasks"])

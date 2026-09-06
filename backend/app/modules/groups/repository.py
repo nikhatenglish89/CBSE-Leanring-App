@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.modules.groups.models import Group, GroupMember, GroupTask, GroupTaskSubmission
+from app.modules.users.models import User
 
 
 def create_group(db: Session, *, teacher_id: uuid.UUID, name: str, description: str) -> Group:
@@ -60,9 +61,17 @@ def remove_member(db: Session, member: GroupMember) -> None:
     db.commit()
 
 
-def list_members(db: Session, group_id: uuid.UUID) -> list[GroupMember]:
-    stmt = select(GroupMember).where(GroupMember.group_id == group_id).order_by(GroupMember.created_at.asc())
-    return list(db.scalars(stmt))
+def list_members_with_students(db: Session, group_id: uuid.UUID) -> list[tuple[GroupMember, User]]:
+    """Members joined to their user row in one query — avoids an N+1
+    get_user_by_id call per student, which made loading a full class-sized
+    group visibly slow (or effectively hang) as membership grew."""
+    stmt = (
+        select(GroupMember, User)
+        .join(User, User.id == GroupMember.student_id)
+        .where(GroupMember.group_id == group_id)
+        .order_by(GroupMember.created_at.asc())
+    )
+    return [(member, student) for member, student in db.execute(stmt).all()]
 
 
 def create_task(
@@ -143,6 +152,27 @@ def list_submissions_for_task(db: Session, task_id: uuid.UUID) -> list[GroupTask
     return list(db.scalars(stmt))
 
 
-def count_submissions_for_task(db: Session, task_id: uuid.UUID) -> int:
-    stmt = select(func.count()).select_from(GroupTaskSubmission).where(GroupTaskSubmission.task_id == task_id)
-    return db.scalar(stmt) or 0
+def count_submissions_by_task(db: Session, task_ids: list[uuid.UUID]) -> dict[uuid.UUID, int]:
+    """Submission counts for every task in one query, instead of one
+    count call per task on the group detail page."""
+    if not task_ids:
+        return {}
+    stmt = (
+        select(GroupTaskSubmission.task_id, func.count())
+        .where(GroupTaskSubmission.task_id.in_(task_ids))
+        .group_by(GroupTaskSubmission.task_id)
+    )
+    return dict(db.execute(stmt).all())
+
+
+def get_submissions_for_student(
+    db: Session, task_ids: list[uuid.UUID], student_id: uuid.UUID
+) -> dict[uuid.UUID, GroupTaskSubmission]:
+    """A student's own submissions across every task in one query, instead
+    of one get_submission call per task on the group detail page."""
+    if not task_ids:
+        return {}
+    stmt = select(GroupTaskSubmission).where(
+        GroupTaskSubmission.task_id.in_(task_ids), GroupTaskSubmission.student_id == student_id
+    )
+    return {s.task_id: s for s in db.scalars(stmt)}

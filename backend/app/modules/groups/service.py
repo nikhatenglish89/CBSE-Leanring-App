@@ -54,24 +54,27 @@ def get_group_detail_row(db: Session, user: User, group_id: uuid.UUID):
         raise AppError("GROUP_NOT_FOUND", "Group not found.", 404)
 
     teacher = users_repo.get_user_by_id(db, group.teacher_id)
-    member_rows = groups_repo.list_members(db, group_id)
-    students = [users_repo.get_user_by_id(db, m.student_id) for m in member_rows]
-    members = [GroupMemberOut.from_row(m, s) for m, s in zip(member_rows, students) if s is not None]
+    # Batched below (one query per collection, not per row) — the previous
+    # per-member/per-task queries made a full class-sized group visibly
+    # slow, and could look like the page had hung entirely.
+    member_rows = groups_repo.list_members_with_students(db, group_id)
+    members = [GroupMemberOut.from_row(m, s) for m, s in member_rows]
 
-    tasks = []
-    for task in groups_repo.list_tasks(db, group_id):
-        my_submission = None
-        if not is_owner:
-            submission = groups_repo.get_submission(db, task.id, user.id)
-            if submission is not None:
-                my_submission = TaskSubmissionOut.from_row(submission, user)
-        tasks.append(
-            GroupTaskOut.from_row(
-                task,
-                submission_count=groups_repo.count_submissions_for_task(db, task.id),
-                my_submission=my_submission,
-            )
+    task_rows = groups_repo.list_tasks(db, group_id)
+    task_ids = [t.id for t in task_rows]
+    submission_counts = groups_repo.count_submissions_by_task(db, task_ids)
+    my_submissions = {} if is_owner else groups_repo.get_submissions_for_student(db, task_ids, user.id)
+
+    tasks = [
+        GroupTaskOut.from_row(
+            task,
+            submission_count=submission_counts.get(task.id, 0),
+            my_submission=(
+                TaskSubmissionOut.from_row(my_submissions[task.id], user) if task.id in my_submissions else None
+            ),
         )
+        for task in task_rows
+    ]
     return group, teacher, members, tasks
 
 
