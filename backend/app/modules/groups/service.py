@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from pathlib import Path
 
 from sqlalchemy.orm import Session
 
@@ -23,6 +24,30 @@ ALLOWED_SUBMISSION_MIME_TYPES = {
     "image/jpeg",
     "image/webp",
 }
+
+# Browsers are unreliable about the Content-Type they report for a file
+# input — Windows commonly reports .doc as application/octet-stream when
+# no app is registered for it, some browsers append "; charset=utf-8" to
+# text/plain, and a missing OS extension mapping can send an empty type
+# entirely. Falling back to the file extension when the reported type is
+# missing/generic/unrecognized avoids rejecting perfectly normal uploads.
+SUBMISSION_EXTENSION_MIME_TYPES = {
+    ".pdf": "application/pdf",
+    ".doc": "application/msword",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".txt": "text/plain",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+}
+
+
+def _resolve_submission_mime_type(file_name: str, reported_mime_type: str | None) -> str | None:
+    normalized = (reported_mime_type or "").split(";")[0].strip().lower()
+    if normalized in ALLOWED_SUBMISSION_MIME_TYPES:
+        return normalized
+    return SUBMISSION_EXTENSION_MIME_TYPES.get(Path(file_name).suffix.lower())
 
 
 def create_group(db: Session, teacher: User, payload: GroupCreateRequest) -> Group:
@@ -146,12 +171,14 @@ def submit_task(
 
     file_size = None
     if file_data is not None:
-        if file_mime_type not in ALLOWED_SUBMISSION_MIME_TYPES:
+        resolved_mime_type = _resolve_submission_mime_type(file_name or "", file_mime_type)
+        if resolved_mime_type is None:
             raise AppError(
                 "UNSUPPORTED_FILE_TYPE",
                 "That file type isn't supported. Allowed: PDF, Word documents, text, and images.",
                 400,
             )
+        file_mime_type = resolved_mime_type
         if len(file_data) > MAX_UPLOAD_BYTES:
             raise AppError(
                 "FILE_TOO_LARGE", f"Files must be under {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.", 400

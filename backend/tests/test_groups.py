@@ -331,6 +331,32 @@ def test_submit_task_rejects_unsupported_file_type(client):
     assert resp.json()["error"]["code"] == "UNSUPPORTED_FILE_TYPE"
 
 
+def test_submit_task_accepts_files_with_unreliable_browser_reported_mime_types(client):
+    # Real browsers are inconsistent about the Content-Type they send for a
+    # file input: Windows commonly reports .doc as application/octet-stream
+    # when no app is registered for it, some browsers append "; charset=..."
+    # to text/plain, and a missing OS extension mapping can send an empty
+    # type entirely. These are all legitimate uploads and must be accepted
+    # by falling back to the file extension.
+    _, student_headers, group_id, task_id = _setup_group_with_task(
+        client, "grp.teacher15f@example.com", "grp.student15f@example.com"
+    )
+    cases = [
+        ("essay.doc", "application/octet-stream"),
+        ("notes.txt", "text/plain; charset=utf-8"),
+        ("scan.pdf", ""),
+    ]
+    for filename, mime in cases:
+        resp = client.post(
+            f"/api/v1/groups/{group_id}/tasks/{task_id}/submit",
+            headers=student_headers,
+            data={"content": f"submission with {filename}"},
+            files={"file": (filename, b"file bytes", mime)},
+        )
+        assert resp.status_code == 201, f"{filename} ({mime!r}) should have been accepted: {resp.json()}"
+        assert resp.json()["data"]["file_name"] == filename
+
+
 def test_submit_task_rejects_oversized_file(client):
     _, student_headers, group_id, task_id = _setup_group_with_task(
         client, "grp.teacher15d@example.com", "grp.student15d@example.com"
