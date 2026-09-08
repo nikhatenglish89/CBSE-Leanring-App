@@ -38,3 +38,10 @@ services:
         value: gemini-3.6-flash
       - key: LLM_API_KEY
         sync: false
+      # Shared secret the scheduled GitHub Actions workflow
+      # (.github/workflows/birthday-emails.yml) sends as X-Cron-Secret to
+      # trigger the daily birthday-email job — Render's free tier has no
+      # built-in cron. Set the same value here and as the CRON_SECRET
+      # repo secret in GitHub.
+      - key: CRON_SECRET
+        sync: false

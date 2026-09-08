@@ -1,6 +1,7 @@
 import uuid
+from datetime import date
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import extract, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.base import utcnow
@@ -127,3 +128,23 @@ def mark_email_verified(db: Session, user: User) -> User:
     db.commit()
     db.refresh(user)
     return user
+
+
+def list_users_with_birthday_today(db: Session, today: date) -> list[User]:
+    """Active users whose date_of_birth falls on today's month/day and who
+    haven't already been sent this year's birthday email — the latter guards
+    against a duplicate send if the daily job is ever triggered twice in
+    one day."""
+    stmt = select(User).where(
+        User.status == "ACTIVE",
+        User.date_of_birth.is_not(None),
+        extract("month", User.date_of_birth) == today.month,
+        extract("day", User.date_of_birth) == today.day,
+        or_(User.last_birthday_email_sent_on.is_(None), User.last_birthday_email_sent_on != today),
+    )
+    return list(db.scalars(stmt))
+
+
+def mark_birthday_email_sent(db: Session, user: User, sent_on: date) -> None:
+    user.last_birthday_email_sent_on = sent_on
+    db.commit()

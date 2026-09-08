@@ -80,7 +80,6 @@ def get_user(user_id: uuid.UUID, db: Annotated[Session, Depends(get_db)]) -> dic
         **UserOut.from_user(detail["user"], is_verified=is_verified).model_dump(),
         current_class_id=detail.get("current_class_id"),
         current_class_name=detail.get("current_class_name"),
-        date_of_birth=detail.get("date_of_birth"),
         bio=detail.get("bio"),
         teacher_verified=detail.get("teacher_verified"),
         student_verified=detail.get("student_verified"),

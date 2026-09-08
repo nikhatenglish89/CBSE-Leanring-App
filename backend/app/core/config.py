@@ -38,6 +38,12 @@ class Settings(BaseSettings):
     SMTP_USER: str = ""
     SMTP_PASSWORD: str = ""
 
+    # Shared secret for endpoints triggered by an external scheduler (e.g. a
+    # scheduled GitHub Actions workflow) rather than a logged-in user —
+    # Render's free tier has no built-in cron. Left empty by default, which
+    # makes those endpoints refuse every request until explicitly set.
+    CRON_SECRET: str = ""
+
     FRONTEND_URL: str = "http://localhost:5173"
     CORS_ORIGINS: str = "http://localhost:5173"
 

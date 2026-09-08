@@ -33,6 +33,12 @@ class User(UUIDPKMixin, TimestampMixin, Base):
     # password); cleared the moment the user successfully changes their
     # password. Self-registered accounts never have this set.
     password_reset_required: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Lives on the shared identity table (not a role profile) since any
+    # role — student, teacher, or parent — can have a birthday celebrated.
+    date_of_birth: Mapped[date | None] = mapped_column(Date, default=None)
+    # Guards the daily birthday-email job against sending twice if it's
+    # ever triggered more than once on the same day.
+    last_birthday_email_sent_on: Mapped[date | None] = mapped_column(Date, default=None)
 
     role: Mapped["Role"] = relationship(lazy="joined")
 
@@ -46,7 +52,6 @@ class StudentProfile(UUIDPKMixin, TimestampMixin, Base):
     parent_profile_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("parent_profiles.id"), default=None
     )
-    date_of_birth: Mapped[date | None] = mapped_column(Date, default=None)
     # Admin approval gate: an unverified student only ever sees FREE
     # published content (see courses/materials services) — mirrors
     # TeacherProfile.verified, which gates whether a teacher can publish.

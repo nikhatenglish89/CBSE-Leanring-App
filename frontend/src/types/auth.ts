@@ -13,6 +13,7 @@ export interface User {
   // roles). Gates whether a teacher can publish a course and whether a
   // student sees PAID published content.
   is_verified: boolean;
+  date_of_birth: string | null;
   created_at: string;
 }
 

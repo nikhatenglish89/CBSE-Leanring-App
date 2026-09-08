@@ -12,7 +12,15 @@ def send_email(to: str, subject: str, html_body: str, text_body: str) -> None:
     flows that trigger email still work with zero external setup.
     """
     if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
-        print(f"[email:not-configured] to={to} subject={subject!r}\n{text_body}")
+        message = f"[email:not-configured] to={to} subject={subject!r}\n{text_body}"
+        try:
+            print(message)
+        except UnicodeEncodeError:
+            # Windows' default console codepage can't render every
+            # character (e.g. emoji) — fall back to an ASCII-safe form
+            # rather than let a print() failure look like the send itself
+            # failed.
+            print(message.encode("ascii", errors="backslashreplace").decode("ascii"))
         return
 
     message = EmailMessage()

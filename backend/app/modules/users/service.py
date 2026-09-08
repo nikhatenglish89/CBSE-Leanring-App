@@ -1,8 +1,10 @@
 import secrets
 import uuid
+from datetime import date
 
 from sqlalchemy.orm import Session
 
+from app.core.email import send_email
 from app.core.exceptions import AppError
 from app.core.security import hash_password
 from app.modules.auth import repository as auth_repo
@@ -22,6 +24,8 @@ def update_me(db: Session, user: User, payload: UserUpdateRequest) -> User:
         user.full_name = payload.full_name
     if payload.phone is not None:
         user.phone = payload.phone
+    if payload.date_of_birth is not None:
+        user.date_of_birth = payload.date_of_birth
     db.commit()
     db.refresh(user)
     return user
@@ -82,7 +86,6 @@ def get_user_detail(db: Session, user_id: uuid.UUID) -> dict:
         )
         detail["current_class_id"] = profile.current_class_id if profile else None
         detail["current_class_name"] = klass.name if klass else None
-        detail["date_of_birth"] = profile.date_of_birth if profile else None
         detail["student_verified"] = profile.verified if profile else None
         detail["linked_parent"] = None
         if profile and profile.parent_profile_id:
@@ -165,3 +168,41 @@ def unlink_parent_from_student(db: Session, student_id: uuid.UUID) -> User:
 
     users_repo.set_student_parent(db, student_profile, None)
     return student_user
+
+
+def _send_birthday_email(user: User) -> bool:
+    """Same shape/contract as send_verification_email in the auth module —
+    returns whether the email actually went out, and never raises, so one
+    bad address can't stop the rest of the day's batch."""
+    text_body = (
+        f"Hi {user.full_name},\n\n"
+        "Happy Birthday from all of us at EduSphere CBSE! We hope you have a fantastic day.\n\n"
+        "Wishing you a year full of learning and achievement."
+    )
+    html_body = f"""
+    <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+      <h2 style="color: #1558e0;">🎉 Happy Birthday, {user.full_name}!</h2>
+      <p>Everyone at EduSphere CBSE is wishing you a fantastic day.</p>
+      <p>Here's to a year full of learning and achievement ahead.</p>
+    </div>
+    """
+    try:
+        send_email(user.email, "Happy Birthday from EduSphere CBSE! 🎂", html_body, text_body)
+        return True
+    except Exception as exc:  # noqa: BLE001 - one failed send must not stop the rest of the batch
+        print(f"[email:send-failed] to={user.email} error={exc}")
+        return False
+
+
+def send_birthday_emails(db: Session, today: date | None = None) -> int:
+    """Sends a birthday email to every active user whose date_of_birth is
+    today and hasn't already received one today. Intended to be called
+    once a day by an external scheduler (Render's free tier has no
+    built-in cron) — see the internal module's router."""
+    today = today or date.today()
+    sent_count = 0
+    for user in users_repo.list_users_with_birthday_today(db, today):
+        if _send_birthday_email(user):
+            users_repo.mark_birthday_email_sent(db, user, today)
+            sent_count += 1
+    return sent_count

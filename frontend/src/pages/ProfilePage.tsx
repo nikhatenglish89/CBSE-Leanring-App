@@ -25,6 +25,7 @@ const schema = z.object({
     .regex(/^\+?[0-9()\-\s]{7,20}$/, "Enter a valid phone number")
     .or(z.literal(""))
     .optional(),
+  date_of_birth: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -52,7 +53,11 @@ export function ProfilePage() {
     formState: { errors, isDirty },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { full_name: user?.full_name ?? "", phone: user?.phone ?? "" },
+    defaultValues: {
+      full_name: user?.full_name ?? "",
+      phone: user?.phone ?? "",
+      date_of_birth: user?.date_of_birth ?? "",
+    },
   });
 
   const {
@@ -63,7 +68,11 @@ export function ProfilePage() {
   } = useForm<PasswordFormValues>({ resolver: zodResolver(passwordSchema) });
 
   useEffect(() => {
-    reset({ full_name: user?.full_name ?? "", phone: user?.phone ?? "" });
+    reset({
+      full_name: user?.full_name ?? "",
+      phone: user?.phone ?? "",
+      date_of_birth: user?.date_of_birth ?? "",
+    });
   }, [user, reset]);
 
   const onSubmit = async (values: FormValues) => {
@@ -71,8 +80,13 @@ export function ProfilePage() {
       const updated = await updateProfile({
         full_name: values.full_name,
         phone: values.phone ? values.phone : null,
+        date_of_birth: values.date_of_birth ? values.date_of_birth : null,
       });
-      reset({ full_name: updated.full_name, phone: updated.phone ?? "" });
+      reset({
+        full_name: updated.full_name,
+        phone: updated.phone ?? "",
+        date_of_birth: updated.date_of_birth ?? "",
+      });
       showToast("Your profile has been updated.", "success");
     } catch {
       showToast("Could not update your profile. Please try again.", "error");
@@ -132,6 +146,15 @@ export function ProfilePage() {
               error={errors.phone?.message}
               {...register("phone")}
             />
+            <Input
+              label="Date of birth"
+              type="date"
+              error={errors.date_of_birth?.message}
+              {...register("date_of_birth")}
+            />
+            <p className="-mt-2 text-xs text-slate-500">
+              We&rsquo;ll send you a birthday wish on this day each year.
+            </p>
             <Input label="Email address" value={user.email} disabled readOnly />
             <p className="-mt-2 text-xs text-slate-500">
               Your email is your login ID and can&rsquo;t be changed here.

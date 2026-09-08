@@ -25,6 +25,7 @@ class UserOut(BaseModel):
     # a teacher can publish a course and whether a student sees PAID
     # published content, not whether the account can log in.
     is_verified: bool
+    date_of_birth: date | None = None
     created_at: datetime
 
     @classmethod
@@ -41,6 +42,7 @@ class UserOut(BaseModel):
             email_verified=user.email_verified_at is not None,
             must_reset_password=user.password_reset_required,
             is_verified=is_verified,
+            date_of_birth=user.date_of_birth,
             created_at=user.created_at,
         )
 
@@ -48,6 +50,7 @@ class UserOut(BaseModel):
 class UserUpdateRequest(BaseModel):
     full_name: str | None = None
     phone: str | None = None
+    date_of_birth: date | None = None
 
 
 class AdminCreateUserRequest(BaseModel):
@@ -82,7 +85,6 @@ class UserDetailOut(UserOut):
 
     current_class_id: uuid.UUID | None = None
     current_class_name: str | None = None
-    date_of_birth: date | None = None
     bio: str | None = None
     teacher_verified: bool | None = None
     student_verified: bool | None = None

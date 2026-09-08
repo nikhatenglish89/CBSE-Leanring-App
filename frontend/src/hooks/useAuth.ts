@@ -27,6 +27,7 @@ interface ForgotPasswordPayload {
 interface UpdateProfilePayload {
   full_name?: string;
   phone?: string | null;
+  date_of_birth?: string | null;
 }
 
 interface ChangePasswordPayload {
