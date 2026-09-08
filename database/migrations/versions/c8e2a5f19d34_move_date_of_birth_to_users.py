@@ -9,6 +9,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import inspect
 
 
 # revision identifiers, used by Alembic.
@@ -19,35 +20,41 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column('users', sa.Column('date_of_birth', sa.Date(), nullable=True))
-    op.add_column('users', sa.Column('last_birthday_email_sent_on', sa.Date(), nullable=True))
+    # Idempotent by inspecting current column state rather than assuming a
+    # clean starting point — this migration previously failed partway
+    # through on production Postgres (the raw UPDATE...FROM below), and
+    # since alembic runs a migration in one transaction, the whole thing
+    # rolled back silently, leaving the DB on the old schema while the
+    # deployed code already expected the new one. Safe to retry from any
+    # partial state now.
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    user_columns = {col["name"] for col in inspector.get_columns("users")}
 
-    # date_of_birth was previously student-only and never had a UI to set
-    # it, but carry over any value that exists rather than silently drop it.
-    op.execute(
-        """
-        UPDATE users
-        SET date_of_birth = student_profiles.date_of_birth
-        FROM student_profiles
-        WHERE student_profiles.user_id = users.id
-          AND student_profiles.date_of_birth IS NOT NULL
-        """
-    )
-    with op.batch_alter_table('student_profiles') as batch_op:
-        batch_op.drop_column('date_of_birth')
+    if "date_of_birth" not in user_columns:
+        op.add_column('users', sa.Column('date_of_birth', sa.Date(), nullable=True))
+    if "last_birthday_email_sent_on" not in user_columns:
+        op.add_column('users', sa.Column('last_birthday_email_sent_on', sa.Date(), nullable=True))
+
+    student_columns = {col["name"] for col in inspector.get_columns("student_profiles")}
+    if "date_of_birth" in student_columns:
+        # Dropped without copying data over first: date_of_birth was
+        # student-only and never had any UI to set it before this feature,
+        # so in practice this column is NULL for every existing row.
+        with op.batch_alter_table('student_profiles') as batch_op:
+            batch_op.drop_column('date_of_birth')
 
 
 def downgrade() -> None:
-    with op.batch_alter_table('student_profiles') as batch_op:
-        batch_op.add_column(sa.Column('date_of_birth', sa.Date(), nullable=True))
-    op.execute(
-        """
-        UPDATE student_profiles
-        SET date_of_birth = users.date_of_birth
-        FROM users
-        WHERE users.id = student_profiles.user_id
-          AND users.date_of_birth IS NOT NULL
-        """
-    )
-    op.drop_column('users', 'last_birthday_email_sent_on')
-    op.drop_column('users', 'date_of_birth')
+    bind = op.get_bind()
+    inspector = inspect(bind)
+    student_columns = {col["name"] for col in inspector.get_columns("student_profiles")}
+    if "date_of_birth" not in student_columns:
+        with op.batch_alter_table('student_profiles') as batch_op:
+            batch_op.add_column(sa.Column('date_of_birth', sa.Date(), nullable=True))
+
+    user_columns = {col["name"] for col in inspector.get_columns("users")}
+    if "last_birthday_email_sent_on" in user_columns:
+        op.drop_column('users', 'last_birthday_email_sent_on')
+    if "date_of_birth" in user_columns:
+        op.drop_column('users', 'date_of_birth')
