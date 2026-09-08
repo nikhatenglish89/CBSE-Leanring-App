@@ -1,7 +1,11 @@
+import logging
+
 from fastapi import Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+
+logger = logging.getLogger("app.errors")
 
 
 class AppError(Exception):
@@ -46,6 +50,10 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    # Previously silent — an unhandled exception returned a generic 500 with
+    # no trace anywhere, including in Render's logs, making a bug like this
+    # undiagnosable after the fact. Log full details before responding.
+    logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
     return _error_response(
         status.HTTP_500_INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "An unexpected error occurred."
     )
