@@ -409,7 +409,7 @@ See `docs/API_DOCUMENTATION.md` for the compact reference version of this table.
 
 Env var categories needed at deploy time (see `.env.example` for the full name list):
 general/environment, database, cache, JWT/auth, payment provider credentials, storage
-provider credentials, LLM provider credentials, SMTP credentials.
+provider credentials, LLM provider credentials, email provider (Resend) credentials.
 
 **Path to Kubernetes**: the backend is designed stateless (session state in Redis/JWT, not
 in-process) so backend pods can scale horizontally behind a Service/Ingress once traffic

@@ -34,8 +34,8 @@ def _issue_token_pair(db: Session, user: User) -> TokenPair:
 
 def send_verification_email(user: User) -> bool:
     """Returns whether the email actually went out (or was a no-op in local
-    dev with no SMTP configured — see app/core/email.py). Callers that need
-    to tell the user the truth (e.g. a "Resend" button) should check this
+    dev with no Resend API key configured — see app/core/email.py). Callers
+    that need to tell the user the truth (e.g. a "Resend" button) should check this
     instead of assuming success."""
     token = create_email_verification_token(str(user.id))
     verify_link = f"{settings.FRONTEND_URL.rstrip('/')}/verify-email?token={token}"

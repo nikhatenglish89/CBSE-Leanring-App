@@ -33,10 +33,15 @@ class Settings(BaseSettings):
     LLM_API_KEY: str = ""
     LLM_MODEL: str = "gemini-3.6-flash"
 
-    SMTP_HOST: str = ""
-    SMTP_PORT: int = 587
-    SMTP_USER: str = ""
-    SMTP_PASSWORD: str = ""
+    # Transactional email via Resend's HTTP API — not raw SMTP, because
+    # Render's free tier blocks outbound SMTP ports (25/465/587) entirely,
+    # so a real mail server is unreachable from there regardless of
+    # credentials. Get a free API key at resend.com. RESEND_FROM_EMAIL must
+    # be an address on a domain verified in your Resend account (their
+    # shared onboarding@resend.dev sandbox address only delivers to your
+    # own Resend account email until you verify a domain).
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = "EduSphere CBSE <onboarding@resend.dev>"
 
     # Shared secret for endpoints triggered by an external scheduler (e.g. a
     # scheduled GitHub Actions workflow) rather than a logged-in user —
