@@ -1,9 +1,13 @@
+import hmac
 import logging
+import traceback
 
 from fastapi import Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from app.core.config import settings
 
 logger = logging.getLogger("app.errors")
 
@@ -54,6 +58,22 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     # no trace anywhere, including in Render's logs, making a bug like this
     # undiagnosable after the fact. Log full details before responding.
     logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+
+    # TEMPORARY debugging aid: with the same shared secret used for cron
+    # endpoints, include the traceback in the response — Render's log
+    # search wasn't surfacing the logger.exception() output above. Remove
+    # once the forgot-password 500 is diagnosed.
+    debug_secret = request.headers.get("x-debug-secret")
+    if settings.CRON_SECRET and debug_secret and hmac.compare_digest(debug_secret, settings.CRON_SECRET):
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "success": False,
+                "error": {"code": "INTERNAL_ERROR", "message": "An unexpected error occurred."},
+                "debug": {"exception": repr(exc), "traceback": traceback.format_exc()},
+            },
+        )
+
     return _error_response(
         status.HTTP_500_INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "An unexpected error occurred."
     )
