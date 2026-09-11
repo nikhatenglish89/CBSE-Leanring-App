@@ -1,3 +1,8 @@
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+from alembic import command
+from alembic.config import Config
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,8 +35,26 @@ from app.modules.subjects.router import router as subjects_router
 from app.modules.users.router import router as users_router
 
 
+def run_migrations() -> None:
+    """Applies pending Alembic migrations. Called from the app's own
+    startup rather than relying solely on Render's "Pre-Deploy Command"
+    dashboard setting — that setting turned out to not be taking effect,
+    which let a deploy go live against a stale schema and broke every
+    endpoint that touched the users table. Running it here ties migrations
+    to the app's actual boot sequence, not a separate dashboard field."""
+    alembic_ini = Path(__file__).resolve().parent.parent / "alembic.ini"
+    cfg = Config(str(alembic_ini))
+    command.upgrade(cfg, "head")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    run_migrations()
+    yield
+
+
 def create_app() -> FastAPI:
-    app = FastAPI(title="EduSphere CBSE API", version="0.1.0")
+    app = FastAPI(title="EduSphere CBSE API", version="0.1.0", lifespan=lifespan)
 
     app.add_middleware(
         CORSMiddleware,
